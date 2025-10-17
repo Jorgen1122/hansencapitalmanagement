@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hansen Capital Management</title>
+<style>
+    body {
+        margin: 0;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #000;
+        color: #fff;
+        line-height: 1.6;
+    }
+
+    a { color: #d4bb61; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+        background: #0d0d0d;
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    header img {
+        height: 60px;
+    }
+
+    nav a { margin-left: 1.5rem; font-weight: bold; }
+
+    section {
+        padding: 80px 20px;
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    #home {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        text-align: center;
+        background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('1df1b7ce-debf-4320-9584-752b54bcceb6.png') no-repeat center center/contain;
+        background-color: #000;
+    }
+
+    #home h2 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #d4bb61;
+    }
+
+    #home p {
+        font-size: 1.5rem;
+        max-width: 700px;
+    }
+
+    #about h2, #contact h2 {
+        font-size: 2rem;
+        color: #d4bb61;
+        margin-bottom: 1rem;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        max-width: 500px;
+        margin-top: 1rem;
+    }
+
+    input, textarea {
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+
+    input[type="submit"] {
+        background: #d4bb61;
+        color: #000;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    input[type="submit"]:hover {
+        background: #c1a74f;
+    }
+
+    footer {
+        text-align: center;
+        padding: 20px;
+        background: #0d0d0d;
+        font-size: 0.9rem;
+        color: #d4bb61;
+    }
+
+    @media(max-width:768px){
+        nav { display: none; }
+        #home h2 { font-size: 2.2rem; }
+        #home p { font-size: 1.2rem; }
+        header img { height: 45px; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="1df1b7ce-debf-4320-9584-752b54bcceb6.png" alt="Hansen Capital Management Logo">
+    <nav>
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+    </nav>
+</header>
+
+<section id="home">
+    <h2>Managing the Hansen Capital Fund</h2>
+    <p>Professional investment management for accredited investors. Hansen Capital Management LLC is the GP of the Hansen Capital Fund, a subsidiary of Hansen Holdings LLC.</p>
+</section>
+
+<section id="about">
+    <h2>About the Founder & Our Fund</h2>
+    <p><strong>Jorgen Hansen</strong>, Founder & CEO, leads Hansen Capital Management with a disciplined, modern investment approach focused on high-conviction strategies.</p>
+    <p>Hansen Capital Management LLC is the General Partner (GP) of the Hansen Capital Fund, overseeing investment decisions and operations. The fund itself is structured under Hansen Holdings LLC, a Limited Partner (LP), and aims to deliver consistent returns for accredited investors through strategic equity and options management.</p>
+</section>
+
+<section id="contact">
+    <h2>Contact Us</h2>
+    <p>Phone: <strong>531-207-9631</strong></p>
+    <p>Email: <strong>youremail@domain.com</strong></p>
+    <form action="https://formspree.io/f/your-form-id" method="POST">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <input type="text" name="phone" placeholder="Your Phone Number">
+        <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
+        <input type="submit" value="Send Message">
+    </form>
+</section>
+
+<footer>
+    &copy; 2025 Hansen Capital Management LLC. All rights reserved.
+</footer>
+
+</body>
+</html>
