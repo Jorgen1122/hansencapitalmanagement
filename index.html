@@ -19,7 +19,7 @@
     header {
         background: #0d0d0d;
         padding: 1rem 2rem;
-        position: sticky;
+        position: relative;
         top: 0;
         z-index: 100;
         display: flex;
@@ -30,11 +30,14 @@
     header-title {
         position: absolute;
         left: 50%;
-        transform: translateX(-50%);
+        top: 50%;
+        transform: translateX(-50%, -50%);
+        font-size: 1.8rem;
         color: #d4bb61;
         font-weight: bold;
         text-align: center;
         margin: 0;
+        pointer-events: none;
     }
     
     header img {
