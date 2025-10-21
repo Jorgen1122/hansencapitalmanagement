@@ -4,139 +4,205 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hansen Capital Management</title>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
 <style>
     /* Global Styles */
     body {
         margin: 0;
-        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-family: 'Poppins', sans-serif;
         background-color: #000;
         color: #fff;
-        line-height: 1.6;
-        text-align: center; /* center all text by default */
+        line-height: 1.8;
+        text-align: center;
+        scroll-behavior: smooth;
     }
 
     a {
         color: #d4bb61;
         text-decoration: none;
+        transition: color 0.3s ease;
     }
     a:hover {
+        color: #e5cc7a;
         text-decoration: underline;
     }
 
     /* Header */
     header {
-        position: relative;
         background: #0d0d0d;
-        padding: 1rem 2rem;
+        padding: 1.2rem 3rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: sticky;
         top: 0;
-        z-index: 100;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
     }
 
     header img {
-        height: 90px;
+        height: 70px;
+        transition: transform 0.3s ease;
+    }
+
+    header img:hover {
+        transform: scale(1.05);
     }
 
     .header-title {
         position: absolute;
-        top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.8rem;
+        transform: translateX(-50%);
+        font-size: 1.9rem;
         color: #d4bb61;
-        font-weight: bold;
+        font-weight: 600;
+        letter-spacing: 1px;
         margin: 0;
         pointer-events: none;
     }
 
     nav a {
-        margin-left: 1.5rem;
-        font-weight: bold;
-        font-size: 1.3rem;
+        margin-left: 2rem;
+        font-weight: 500;
+        font-size: 1.1rem;
     }
 
-    /* Sections */
+    /* Section Base */
     section {
-        padding: 80px 20px;
-        max-width: 1000px;
+        padding: 90px 20px;
+        max-width: 1100px;
         margin: auto;
     }
 
+    /* Home Section */
     #home {
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        min-height: 100vh;
+        background: radial-gradient(circle at center, rgba(20,20,20,0.9), #000);
         text-align: center;
-        background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), no-repeat center center/contain;
-        background-color: #000;
     }
 
     #home h2 {
-        font-size: 3rem;
-        margin-bottom: 1rem;
+        font-size: 2.6rem;
+        max-width: 800px;
         color: #d4bb61;
+        font-weight: 500;
+        margin: 0 auto 1rem auto;
     }
 
     #home p {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         max-width: 700px;
+        margin: 0 auto;
+        color: #ccc;
     }
 
+    /* About Section */
     #about h2, #contact h2 {
-        font-size: 2rem;
+        font-size: 2.2rem;
         color: #d4bb61;
-        margin-bottom: 1rem;
+        margin-bottom: 1.2rem;
+        font-weight: 600;
     }
 
+    #about p {
+        font-size: 1.1rem;
+        color: #ddd;
+        max-width: 850px;
+        margin: 0.8rem auto;
+    }
+
+    /* Contact Section */
     form {
         display: flex;
         flex-direction: column;
         max-width: 500px;
-        margin: 1rem auto 0 auto;
+        margin: 1.5rem auto 0 auto;
     }
 
     input, textarea {
-        padding: 0.8rem;
+        padding: 1rem;
         margin-bottom: 1rem;
         border: none;
-        border-radius: 5px;
+        border-radius: 8px;
         font-size: 1rem;
+        background: #1a1a1a;
+        color: #fff;
+        outline: none;
+        transition: background 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+        background: #222;
     }
 
     input[type="submit"] {
         background: #d4bb61;
         color: #000;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
-        transition: 0.3s;
+        transition: background 0.3s ease, transform 0.2s ease;
+        border-radius: 8px;
     }
 
     input[type="submit"]:hover {
         background: #c1a74f;
+        transform: translateY(-2px);
     }
 
+    /* Footer */
     footer {
         text-align: center;
-        padding: 20px;
+        padding: 30px 15px;
         background: #0d0d0d;
         font-size: 0.9rem;
         color: #d4bb61;
+        border-top: 1px solid rgba(255,255,255,0.05);
     }
 
     /* Mobile */
-    @media(max-width:768px){
-        nav { display: none; }
-        #home h2 { font-size: 2.2rem; }
-        #home p { font-size: 1.2rem; }
-        header img { height: 45px; }
-        .header-title { font-size: 1.4rem; }
+    @media(max-width: 768px) {
+        header {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        nav {
+            margin-top: 0.8rem;
+        }
+
+        nav a {
+            margin: 0 1rem;
+            display: inline-block;
+        }
+
+        .header-title {
+            position: static;
+            transform: none;
+            margin-top: 0.5rem;
+        }
+
+        #home h2 {
+            font-size: 2rem;
+        }
+
+        #home p {
+            font-size: 1.1rem;
+        }
+
+        header img {
+            height: 55px;
+        }
     }
 </style>
 </head>
+
 <body>
 
 <header>
@@ -166,14 +232,14 @@
     <form action="https://formspree.io/f/mjkalavz" method="POST">
         <input type="text" name="name" placeholder="Your Name" required>
         <input type="email" name="email" placeholder="Your Email" required>
-        <input type="text" name="phone" placeholder="Your Phone Number"required>
+        <input type="text" name="phone" placeholder="Your Phone Number" required>
         <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
         <input type="submit" value="Send Message">
     </form>
 </section>
 
 <footer>
-    &copy; 2025 Hansen Capital Management LLC. All rights reserved.
+    &copy; 2025 Hansen Capital Management LLC. All rights reserved.<br>
     The materials on this website are for illustration and discussion purposes only and do not constitute an offering. An offering may be made only by delivery of a confidential offering memorandum to appropriate investors. PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
 </footer>
 
