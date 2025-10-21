@@ -9,208 +9,214 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-    /* Global Styles */
-    body {
-        margin: 0;
-        font-family: 'Helvetica Neue', Arial, sans-serif;
-        background-color: #000;
-        color: #fff;
-        line-height: 1.8;
-        text-align: center;
-        scroll-behavior: smooth;
-    }
+/* ------------------ GLOBAL ------------------ */
+body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #000;
+    color: #fff;
+    line-height: 1.8;
+    text-align: center;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+}
 
-    a {
-        color: #d4bb61;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-    a:hover {
-        color: #e5cc7a;
-        text-decoration: underline;
-    }
+/* Smooth fade-in for body */
+body {
+    opacity: 0;
+    animation: fadeInBody 1.5s ease forwards;
+}
+@keyframes fadeInBody {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
-    /* Header */
+/* Links */
+a {
+    color: #d4bb61;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+a:hover {
+    color: #e5cc7a;
+    text-decoration: underline;
+}
+
+/* ------------------ HEADER ------------------ */
+header {
+    background: #0d0d0d;
+    padding: 1.2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    transform: translateY(-80px);
+    animation: slideDown 1.2s ease forwards;
+}
+@keyframes slideDown {
+    to { transform: translateY(0); }
+}
+
+header img {
+    height: 70px;
+    transition: transform 0.3s ease;
+}
+header img:hover {
+    transform: scale(1.05);
+}
+
+.header-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: #d4bb61;
+    font-weight: 500;
+    letter-spacing: 1px;
+    margin: 0;
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeIn 1.8s ease forwards 0.4s;
+}
+
+nav a {
+    margin-left: 2rem;
+    font-weight: 500;
+    font-size: 1.1rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    opacity: 0;
+    animation: fadeIn 1.2s ease forwards 0.8s;
+}
+
+/* ------------------ SECTIONS ------------------ */
+section {
+    padding: 90px 20px;
+    max-width: 1100px;
+    margin: auto;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s ease-out;
+}
+section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Home Section */
+#home {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: radial-gradient(circle at center, rgba(20,20,20,0.9), #000);
+    text-align: center;
+}
+#home h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    max-width: 850px;
+    color: #d4bb61;
+    font-weight: 500;
+    margin: 0 auto 1.2rem auto;
+    letter-spacing: 0.5px;
+}
+
+/* About Section */
+#about h2, #contact h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: #d4bb61;
+    margin-bottom: 1.2rem;
+    font-weight: 500;
+}
+#about p {
+    font-size: 1.05rem;
+    color: #ddd;
+    max-width: 850px;
+    margin: 0.8rem auto;
+}
+
+/* Contact Section */
+form {
+    display: flex;
+    flex-direction: column;
+    max-width: 500px;
+    margin: 1.5rem auto 0 auto;
+}
+input, textarea {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #1a1a1a;
+    color: #fff;
+    outline: none;
+    transition: background 0.3s ease;
+}
+input:focus, textarea:focus {
+    background: #222;
+}
+input[type="submit"] {
+    background: #d4bb61;
+    color: #000;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    border-radius: 8px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+}
+input[type="submit"]:hover {
+    background: #c1a74f;
+    transform: translateY(-2px);
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 30px 15px;
+    background: #0d0d0d;
+    font-size: 0.9rem;
+    color: #d4bb61;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Mobile */
+@media(max-width: 768px) {
     header {
-        background: #0d0d0d;
-        padding: 1.2rem 3rem;
-        display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
     }
-
-    header img {
-        height: 70px;
-        transition: transform 0.3s ease;
+    nav {
+        margin-top: 0.8rem;
     }
-
-    header img:hover {
-        transform: scale(1.05);
-    }
-
-    .header-title {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        font-family: 'Playfair Display', serif;
-        font-size: 2rem;
-        color: #d4bb61;
-        font-weight: 500;
-        letter-spacing: 1px;
-        margin: 0;
-        pointer-events: none;
-    }
-
     nav a {
-        margin-left: 2rem;
-        font-weight: 500;
-        font-size: 1.1rem;
-        font-family: 'Helvetica Neue', Arial, sans-serif;
+        margin: 0 1rem;
+        display: inline-block;
     }
-
-    /* Section Base */
-    section {
-        padding: 90px 20px;
-        max-width: 1100px;
-        margin: auto;
+    .header-title {
+        position: static;
+        transform: none;
+        margin-top: 0.5rem;
     }
-
-    /* Home Section */
-    #home {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        background: radial-gradient(circle at center, rgba(20,20,20,0.9), #000);
-        text-align: center;
-    }
-
     #home h2 {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.4rem;
-        max-width: 850px;
-        color: #d4bb61;
-        font-weight: 500;
-        margin: 0 auto 1.2rem auto;
-        letter-spacing: 0.5px;
+        font-size: 2rem;
     }
-
-    #home p {
-        font-size: 1.2rem;
-        max-width: 700px;
-        margin: 0 auto;
-        color: #ccc;
-    }
-
-    /* About Section */
-    #about h2, #contact h2 {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.2rem;
-        color: #d4bb61;
-        margin-bottom: 1.2rem;
-        font-weight: 500;
-    }
-
-    #about p {
-        font-size: 1.05rem;
-        color: #ddd;
-        max-width: 850px;
-        margin: 0.8rem auto;
-        font-family: 'Helvetica Neue', Arial, sans-serif;
-    }
-
-    /* Contact Section */
-    form {
-        display: flex;
-        flex-direction: column;
-        max-width: 500px;
-        margin: 1.5rem auto 0 auto;
-    }
-
-    input, textarea {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border: none;
-        border-radius: 8px;
-        font-size: 1rem;
-        background: #1a1a1a;
-        color: #fff;
-        outline: none;
-        transition: background 0.3s ease;
-    }
-
-    input:focus, textarea:focus {
-        background: #222;
-    }
-
-    input[type="submit"] {
-        background: #d4bb61;
-        color: #000;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.3s ease, transform 0.2s ease;
-        border-radius: 8px;
-        font-family: 'Playfair Display', serif;
-        font-size: 1.1rem;
-    }
-
-    input[type="submit"]:hover {
-        background: #c1a74f;
-        transform: translateY(-2px);
-    }
-
-    /* Footer */
-    footer {
-        text-align: center;
-        padding: 30px 15px;
-        background: #0d0d0d;
-        font-size: 0.9rem;
-        color: #d4bb61;
-        border-top: 1px solid rgba(255,255,255,0.05);
-    }
-
-    /* Mobile */
-    @media(max-width: 768px) {
-        header {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        nav {
-            margin-top: 0.8rem;
-        }
-
-        nav a {
-            margin: 0 1rem;
-            display: inline-block;
-        }
-
-        .header-title {
-            position: static;
-            transform: none;
-            margin-top: 0.5rem;
-        }
-
-        #home h2 {
-            font-size: 2rem;
-        }
-
-        #home p {
-            font-size: 1.1rem;
-        }
-
-        header img {
-            height: 55px;
-        }
-    }
+}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -228,7 +234,7 @@
 </section>
 
 <section id="about">
-    <h2>About the Firm & Our Fund</h2>
+    <h2>About the Firm and Our Fund</h2>
     <p>Hansen Capital Management LLC, founded in 2025, manages the Hansen Capital Fund. We focus on quantitative methods for portfolio management. The firm leverages computer science, artificial intelligence, and advanced data analytics to develop and manage proprietary quantitative trading strategies, including the HECC model, designed to capture alpha in dynamic markets.</p>
     <p>Hansen Capital Management LLC is a subsidiary of Hansen Holdings LLC and the general partner and manager of the Hansen Capital Fund, a Reg D private offering. Hansen Holdings LLC is the holdings company for its subsidiary Hansen Capital Management LLC and the Hansen Capital Fund. Hansen Holdings LLC also serves as a limited partner in the Hansen Capital Fund.</p>
 </section>
@@ -250,6 +256,20 @@
     &copy; 2025 Hansen Capital Management LLC. All rights reserved.<br>
     The materials on this website are for illustration and discussion purposes only and do not constitute an offering. An offering may be made only by delivery of a confidential offering memorandum to appropriate investors. PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
 </footer>
+
+<script>
+/* Simple scroll reveal animation */
+const sections = document.querySelectorAll("section");
+const revealOnScroll = () => {
+  const trigger = window.innerHeight * 0.85;
+  sections.forEach(sec => {
+    const top = sec.getBoundingClientRect().top;
+    if (top < trigger) sec.classList.add("visible");
+  });
+};
+window.addEventListener("scroll", revealOnScroll);
+window.addEventListener("load", revealOnScroll);
+</script>
 
 </body>
 </html>
