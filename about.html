@@ -1,1 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About | Hansen Capital Management</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #030D1D;
+    color: #D4AF37;
+    line-height: 1.8;
+    text-align: center;
+    overflow-x: hidden;
+    opacity: 0;
+    animation: fadeInBody 1.5s ease forwards;
+}
+
+@keyframes fadeInBody {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+a {
+    color: #D4AF37;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* HEADER */
+header {
+    background: #071428;
+    padding: 1.2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    transform: translateY(-80px);
+    animation: slideDown 1.2s ease forwards;
+}
+
+@keyframes slideDown {
+    to { transform: translateY(0); }
+}
+
+header img {
+    height: 70px;
+    transition: transform 0.3s ease;
+}
+
+header img:hover {
+    transform: scale(1.05);
+}
+
+nav a {
+    margin-left: 2rem;
+    font-weight: 500;
+    font-size: 1.1rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    opacity: 0;
+    animation: fadeIn 1.2s ease forwards 0.8s;
+}
+
+/* PAGE */
+main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 90px 20px;
+}
+
+.page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 500;
+    color: #D4AF37;
+    margin-bottom: 1rem;
+}
+
+.page-intro {
+    color: #E8E0C5;
+    font-size: 1.1rem;
+    max-width: 800px;
+    margin: 0 auto 70px auto;
+}
+
+/* SECTIONS */
+.content-section {
+    margin-bottom: 80px;
+    text-align: left;
+    background: #071428;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    padding: 42px;
+}
+
+.content-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 500;
+    color: #D4AF37;
+    margin-top: 0;
+    margin-bottom: 1.2rem;
+}
+
+.content-section p {
+    color: #E8E0C5;
+    font-size: 1.05rem;
+    margin-bottom: 1rem;
+}
+
+/* FOUNDER */
+.founder-section {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 40px;
+    align-items: center;
+}
+
+.founder-photo {
+    width: 100%;
+    max-width: 320px;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    background: #030D1D;
+}
+
+.founder-placeholder {
+    width: 100%;
+    max-width: 320px;
+    height: 420px;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    background: #030D1D;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #D4AF37;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.founder-text h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 500;
+    color: #D4AF37;
+    margin-top: 0;
+}
+
+.founder-text h3 {
+    color: #D4AF37;
+    font-weight: 500;
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.founder-text p {
+    color: #E8E0C5;
+    font-size: 1.05rem;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 30px 15px;
+    background: #071428;
+    font-size: 0.5rem;
+    color: #D4AF37;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+footer p {
+    max-width: 950px;
+    margin: 0.5rem auto;
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* MOBILE */
+@media(max-width: 900px) {
+    .founder-section {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .founder-placeholder,
+    .founder-photo {
+        margin: auto;
+    }
+
+    .content-section {
+        text-align: center;
+    }
+}
+
+@media(max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: center;
+        padding: 1.2rem 1rem;
+    }
+
+    nav {
+        margin-top: 0.8rem;
+    }
+
+    nav a {
+        margin: 0 0.75rem;
+        display: inline-block;
+        font-size: 1rem;
+    }
+
+    .page-title {
+        font-size: 2.3rem;
+    }
+
+    main {
+        padding: 70px 18px;
+    }
+
+    .content-section {
+        padding: 30px 22px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <img src="logo.png" alt="Hansen Capital Management Logo">  
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="approach.html">Approach</a>
+        <a href="risk.html">Risk</a>
+        <a href="contact.html">Contact</a>
+    </nav>
+</header>
+
+<main>
+
+    <h1 class="page-title">About Hansen Capital Management</h1>
+
+    <p class="page-intro">
+        Hansen Capital Management LLC is a fund management firm focused on quantitative trading strategies, 
+        systematic research, and disciplined risk management.
+    </p>
+
+    <section class="content-section">
+        <h2>About the Firm</h2>
+
+        <p>
+            Hansen Capital Management LLC develops and manages proprietary trading processes designed to support 
+            the investment objectives of the Hansen Capital Fund.
+        </p>
+
+        <p>
+            The firm's investment philosophy emphasizes systematic research, statistical analysis, disciplined 
+            execution, and risk oversight. Hansen Capital Management seeks to maintain a structured approach to 
+            market research and portfolio management through internally developed methodologies.
+        </p>
+
+        <p>
+            The firm does not publicly disclose proprietary signal logic, model architecture, or trading methodology.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h2>Firm Structure</h2>
+
+        <p>
+            Hansen Capital Management LLC serves as the General Partner of the Hansen Capital Fund and is responsible 
+            for market research, portfolio management, risk oversight, and the implementation of proprietary trading 
+            processes designed to support the fund's investment objectives.
+        </p>
+
+        <p>
+            Hansen Capital Management LLC operates as a subsidiary of Hansen Holdings LLC, which serves as the parent 
+            company of the Hansen organization.
+        </p>
+    </section>
+
+    <section class="content-section founder-section">
+
+        <!-- Replace founder-photo.jpg with your actual professional photo file -->
+        <!-- Example: <img class="founder-photo" src="founder-photo.jpg" alt="Jorgen Hansen, Founder of Hansen Capital Management"> -->
+
+        <div class="founder-placeholder">
+            Founder Photo
+        </div>
+
+        <div class="founder-text">
+            <h2>Founder</h2>
+            <h3>Jorgen Hansen | Founder & Managing Member</h3>
+
+            <p>
+                Jorgen Hansen is the Founder and Managing Member of Hansen Capital Management LLC.
+            </p>
+
+            <p>
+                His background includes experience in financial services, securities markets, trading operations, 
+                and investment research. Through professional experience and independent quantitative research, 
+                he developed a strong interest in systematic trading, portfolio management, and risk-controlled 
+                investment processes.
+            </p>
+
+            <p>
+                Hansen founded the firm with the objective of building a research-driven fund management organization 
+                focused on quantitative trading methodologies, disciplined execution, and long-term capital stewardship.
+            </p>
+        </div>
+
+    </section>
+
+    <section class="content-section">
+        <h2>Mission</h2>
+
+        <p>
+            Hansen Capital Management was founded on the belief that effective fund management requires discipline, 
+            research, and risk awareness. The firm's mission is to develop and manage quantitative trading processes 
+            designed to support the Hansen Capital Fund's investment objectives while maintaining a strong commitment 
+            to risk oversight and continuous improvement.
+        </p>
+    </section>
+
+</main>
+
+<footer>
+    <p>&copy; 2025 Hansen Capital Management LLC. All rights reserved.</p>
+
+    <p>
+        The information on this website is provided for informational purposes only and does not constitute 
+        an offer to sell or a solicitation of an offer to buy any security.
+    </p>
+
+    <p>
+        Any offering of interests in a private investment vehicle managed by Hansen Capital Management LLC 
+        may be made only pursuant to confidential offering documents and only to investors who satisfy 
+        applicable eligibility requirements.
+    </p>
+
+    <p>
+        PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
+    </p>
+</footer>
+
+</body>
+</html>
