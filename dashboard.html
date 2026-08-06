@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Dashboard | Hansen Capital Management</title>
+<link rel="icon" type="image/png" href="bitlogo.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+margin: 0;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+background-color: #030D1D;
+color: #D4AF37;
+line-height: 1.7;
+}
+a { color: #D4AF37; }
+header {
+background: #071428;
+padding: 1.2rem 3rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+header img { height: 60px; }
+nav a { margin-left: 1.5rem; font-weight: 500; font-size: 0.95rem; }
+#logout-btn {
+background: none;
+border: 1px solid rgba(212,175,55,0.5);
+color: #D4AF37;
+padding: 6px 14px;
+cursor: pointer;
+font-size: 0.9rem;
+margin-left: 1.5rem;
+}
+main {
+max-width: 1100px;
+margin: 0 auto;
+padding: 40px 24px 80px 24px;
+}
+h1 {
+font-family: 'Playfair Display', serif;
+font-weight: 500;
+font-size: 1.9rem;
+margin-bottom: 4px;
+}
+#period-label {
+color: #E8E0C5;
+font-size: 0.95rem;
+margin-top: 0;
+}
+.kpi-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 20px;
+margin: 30px 0 50px 0;
+}
+.kpi-card {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.25);
+padding: 22px;
+text-align: left;
+}
+.kpi-card .label {
+color: #E8E0C5;
+font-size: 0.85rem;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.kpi-card .value {
+font-family: 'Playfair Display', serif;
+font-size: 1.8rem;
+color: #D4AF37;
+margin-top: 6px;
+}
+.section-title {
+font-family: 'Playfair Display', serif;
+font-size: 1.4rem;
+font-weight: 500;
+color: #D4AF37;
+border-bottom: 1px solid rgba(212,175,55,0.25);
+padding-bottom: 10px;
+margin-top: 50px;
+}
+.upload-box {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.25);
+padding: 26px;
+margin-top: 20px;
+text-align: left;
+}
+.upload-box input[type="file"] {
+color: #E8E0C5;
+margin-bottom: 14px;
+display: block;
+}
+.btn {
+background: #D4AF37;
+color: #030D1D;
+font-weight: 600;
+padding: 10px 26px;
+border: none;
+cursor: pointer;
+font-size: 0.95rem;
+}
+.btn:disabled { opacity: 0.6; cursor: default; }
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 20px;
+text-align: left;
+}
+th, td {
+padding: 10px 8px;
+border-bottom: 1px solid rgba(212,175,55,0.15);
+color: #E8E0C5;
+font-size: 0.9rem;
+}
+th { color: #D4AF37; font-weight: 600; }
+#status-msg { margin-top: 10px; font-size: 0.9rem; min-height: 1.2em; }
+#status-msg.error { color: #E77; }
+#status-msg.success { color: #8FCB8F; }
+#loading, #no-data {
+text-align: center;
+color: #E8E0C5;
+padding: 40px;
+}
+@media(max-width: 800px) {
+.kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+@media(max-width: 500px) {
+.kpi-grid { grid-template-columns: 1fr; }
+header { flex-direction: column; gap: 10px; padding: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.png" alt="Hansen Capital Management Logo">
+<nav>
+<a href="accounting.html">Accounting Home</a>
+<button id="logout-btn">Log Out</button>
+</nav>
+</header>
+
+<main>
+<div id="loading">Loading your dashboard…</div>
+
+<div id="dashboard-content" style="display:none;">
+<h1 id="client-name">Welcome</h1>
+<p id="period-label"></p>
+
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<div id="no-kpi" class="upload-box" style="display:none;">
+No KPI data has been posted yet. Your numbers will appear here once your
+first month's books are closed.
+</div>
+
+<h2 class="section-title">Upload Documents</h2>
+<div class="upload-box">
+<input type="file" id="file-input" multiple>
+<button class="btn" id="upload-btn">Upload</button>
+<div id="status-msg"></div>
+</div>
+
+<h2 class="section-title">Your Documents</h2>
+<table id="doc-table">
+<thead>
+<tr><th>File</th><th>Uploaded</th><th>Status</th></tr>
+</thead>
+<tbody id="doc-rows"></tbody>
+</table>
+<p id="no-docs" style="display:none; color:#E8E0C5;">No documents uploaded yet.</p>
+</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const DOCS_BUCKET = 'client-documents';
+
+let currentUser = null;
+let currentClient = null;
+
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUser = session.user;
+
+  // Look up the client record linked to this logged-in user
+  const { data: client, error: clientErr } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .single();
+
+  if (clientErr || !client) {
+    document.getElementById('loading').textContent =
+      'No client profile is linked to this account yet. Contact us to finish setup.';
+    return;
+  }
+  currentClient = client;
+
+  document.getElementById('client-name').textContent = `Welcome, ${client.business_name}`;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+
+  await loadKpis();
+  await loadDocuments();
+}
+
+async function loadKpis() {
+  const { data, error } = await supabase
+    .from('kpi_snapshots')
+    .select('*')
+    .eq('client_id', currentClient.id)
+    .order('period_end', { ascending: false })
+    .limit(1)
+    .single();
+
+  const grid = document.getElementById('kpi-grid');
+  if (error || !data) {
+    document.getElementById('no-kpi').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('period-label').textContent =
+    `As of ${new Date(data.period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+
+  const fmt = (n) => n == null ? '—' : `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtPct = (n) => n == null ? '—' : `${(Number(n) * 100).toFixed(1)}%`;
+
+  const cards = [
+    ['Cash Balance', fmt(data.cash)],
+    ['Revenue (MTD)', fmt(data.revenue_mtd)],
+    ['Expenses (MTD)', fmt(data.expenses_mtd)],
+    ['Net Income (MTD)', fmt(data.net_income_mtd)],
+    ['Accounts Receivable', fmt(data.accounts_receivable)],
+    ['Accounts Payable', fmt(data.accounts_payable)],
+    ['Gross Margin', fmtPct(data.gross_margin)],
+    ['Net Margin', fmtPct(data.net_margin)],
+  ];
+  grid.innerHTML = cards.map(([label, value]) => `
+    <div class="kpi-card">
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+    </div>
+  `).join('');
+}
+
+async function loadDocuments() {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('client_id', currentClient.id)
+    .order('uploaded_at', { ascending: false });
+
+  const rows = document.getElementById('doc-rows');
+  if (error || !data || data.length === 0) {
+    document.getElementById('no-docs').style.display = 'block';
+    return;
+  }
+  document.getElementById('no-docs').style.display = 'none';
+  rows.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.filename}</td>
+      <td>${new Date(d.uploaded_at).toLocaleDateString()}</td>
+      <td>${d.status}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('upload-btn').addEventListener('click', async () => {
+  const input = document.getElementById('file-input');
+  const files = input.files;
+  const statusEl = document.getElementById('status-msg');
+  if (!files || files.length === 0) {
+    statusEl.textContent = 'Choose at least one file first.';
+    statusEl.className = 'error';
+    return;
+  }
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  statusEl.textContent = 'Uploading…';
+  statusEl.className = '';
+
+  try {
+    for (const file of files) {
+      const path = `${currentClient.id}/${Date.now()}_${file.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from(DOCS_BUCKET)
+        .upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const { error: dbErr } = await supabase.from('documents').insert({
+        client_id: currentClient.id,
+        filename: file.name,
+        storage_path: path,
+        status: 'pending',
+      });
+      if (dbErr) throw dbErr;
+    }
+    statusEl.textContent = 'Uploaded successfully.';
+    statusEl.className = 'success';
+    input.value = '';
+    await loadDocuments();
+  } catch (err) {
+    statusEl.textContent = err.message || 'Upload failed.';
+    statusEl.className = 'error';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+init();
+</script>
+
+</body>
+</html>
