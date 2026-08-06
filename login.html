@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Login | Hansen Capital Management</title>
+<link rel="icon" type="image/png" href="bitlogo.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+margin: 0;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+background-color: #030D1D;
+color: #D4AF37;
+line-height: 1.8;
+text-align: center;
+}
+a { color: #D4AF37; }
+header {
+background: #071428;
+padding: 1.2rem 3rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+header img { height: 70px; }
+nav a { margin-left: 2rem; font-weight: 500; }
+
+.login-wrap {
+min-height: 75vh;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 40px 20px;
+}
+.login-box {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.4);
+padding: 44px;
+width: 100%;
+max-width: 400px;
+text-align: left;
+}
+.login-box h1 {
+font-family: 'Playfair Display', serif;
+font-size: 1.7rem;
+font-weight: 500;
+text-align: center;
+margin-top: 0;
+}
+label {
+display: block;
+color: #E8E0C5;
+font-size: 0.9rem;
+margin: 14px 0 6px 0;
+}
+input {
+width: 100%;
+box-sizing: border-box;
+background: #030D1D;
+border: 1px solid rgba(212, 175, 55, 0.35);
+color: #E8E0C5;
+padding: 10px 12px;
+font-size: 1rem;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+input:focus { outline: 1px solid #D4AF37; }
+.btn {
+width: 100%;
+margin-top: 22px;
+background: #D4AF37;
+color: #030D1D;
+font-weight: 600;
+padding: 12px;
+border: none;
+font-size: 1rem;
+cursor: pointer;
+}
+.btn:hover { background: #E8C458; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.toggle-mode {
+text-align: center;
+margin-top: 16px;
+font-size: 0.9rem;
+color: #E8E0C5;
+}
+.toggle-mode a { cursor: pointer; }
+#message {
+margin-top: 14px;
+font-size: 0.9rem;
+min-height: 1.2em;
+}
+#message.error { color: #E77; }
+#message.success { color: #8FCB8F; }
+footer {
+text-align: center;
+padding: 20px 15px;
+background: #071428;
+font-size: 0.6rem;
+color: #D4AF37;
+}
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.png" alt="Hansen Capital Management Logo">
+<nav>
+<a href="index.html">Home</a>
+<a href="accounting.html">Accounting</a>
+</nav>
+</header>
+
+<div class="login-wrap">
+<div class="login-box">
+<h1 id="form-title">Client Login</h1>
+
+<form id="auth-form">
+<label for="email">Email</label>
+<input type="email" id="email" required autocomplete="email">
+
+<label for="password">Password</label>
+<input type="password" id="password" required autocomplete="current-password">
+
+<button type="submit" class="btn" id="submit-btn">Log In</button>
+<div id="message"></div>
+</form>
+
+<div class="toggle-mode">
+<span id="toggle-text">New client?</span>
+<a id="toggle-link" onclick="toggleMode()">Create an account</a>
+</div>
+</div>
+</div>
+
+<footer>
+<p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let mode = 'login'; // or 'signup'
+
+function toggleMode() {
+  mode = mode === 'login' ? 'signup' : 'login';
+  document.getElementById('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
+  document.getElementById('submit-btn').textContent = mode === 'login' ? 'Log In' : 'Sign Up';
+  document.getElementById('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
+  document.getElementById('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
+  setMessage('', '');
+}
+
+function setMessage(text, cls) {
+  const el = document.getElementById('message');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+// If already logged in, go straight to dashboard
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session) window.location.href = 'dashboard.html';
+});
+
+document.getElementById('auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  setMessage('', '');
+
+  try {
+    if (mode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      window.location.href = 'dashboard.html';
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      setMessage('Account created. Check your email to confirm, then log in.', 'success');
+      toggleMode();
+    }
+  } catch (err) {
+    setMessage(err.message || 'Something went wrong.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
