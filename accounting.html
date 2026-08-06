@@ -1,1 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounting Services | Hansen Capital Management</title>
+<link rel="icon" type="image/png" href="bitlogo.png">
+<link rel="apple-touch-icon" href="bitlogo.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+margin: 0;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+background-color: #030D1D;
+color: #D4AF37;
+line-height: 1.8;
+text-align: center;
+overflow-x: hidden;
+opacity: 0;
+animation: fadeInBody 1.5s ease forwards;
+}
+@keyframes fadeInBody {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+a {
+color: #D4AF37;
+text-decoration: none;
+transition: color 0.3s ease;
+}
+a:hover {
+text-decoration: underline;
+}
+/* HEADER */
+header {
+background: #071428;
+padding: 1.2rem 3rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+position: sticky;
+top: 0;
+z-index: 1000;
+box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+transform: translateY(-80px);
+animation: slideDown 1.2s ease forwards;
+}
+@keyframes slideDown {
+to { transform: translateY(0); }
+}
+header img {
+height: 70px;
+transition: transform 0.3s ease;
+}
+header img:hover {
+transform: scale(1.05);
+}
+nav a {
+margin-left: 2rem;
+font-weight: 500;
+font-size: 1.1rem;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+opacity: 0;
+animation: fadeIn 1.2s ease forwards 0.8s;
+}
+nav a.active {
+border-bottom: 1px solid #D4AF37;
+padding-bottom: 4px;
+}
+/* MAIN */
+main {
+min-height: 100vh;
+}
+/* HERO */
+.hero {
+min-height: 60vh;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+padding: 80px 20px 40px 20px;
+max-width: 1100px;
+margin: auto;
+}
+.hero h1 {
+font-family: 'Playfair Display', serif;
+font-size: 2.8rem;
+color: #D4AF37;
+font-weight: 500;
+max-width: 950px;
+margin: 0 auto 1.5rem auto;
+letter-spacing: 0.5px;
+line-height: 1.25;
+}
+.hero p {
+font-size: 1.1rem;
+color: #E8E0C5;
+max-width: 760px;
+margin: 0 auto 1.2rem auto;
+}
+/* PORTAL CTA */
+.portal-cta {
+max-width: 1050px;
+margin: 0 auto 60px auto;
+padding: 0 20px;
+}
+.portal-box {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.4);
+padding: 40px;
+text-align: center;
+}
+.portal-box h2 {
+font-family: 'Playfair Display', serif;
+color: #D4AF37;
+font-size: 1.7rem;
+font-weight: 500;
+margin-top: 0;
+}
+.portal-box p {
+color: #E8E0C5;
+max-width: 600px;
+margin: 0 auto 1.5rem auto;
+}
+.btn {
+display: inline-block;
+background: #D4AF37;
+color: #030D1D;
+font-weight: 600;
+padding: 14px 36px;
+border-radius: 2px;
+letter-spacing: 0.5px;
+transition: background 0.3s ease;
+}
+.btn:hover {
+background: #E8C458;
+text-decoration: none;
+}
+/* HOME CARDS */
+.home-cards {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 24px;
+max-width: 1050px;
+margin: 0 auto;
+padding: 20px 20px 60px 20px;
+}
+.card {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.25);
+padding: 32px 26px;
+text-align: left;
+min-height: 220px;
+}
+.card h2 {
+font-family: 'Playfair Display', serif;
+color: #D4AF37;
+font-size: 1.6rem;
+font-weight: 500;
+margin-top: 0;
+}
+.card p {
+color: #E8E0C5;
+font-size: 1rem;
+}
+.card a {
+display: inline-block;
+margin-top: 12px;
+font-weight: 600;
+}
+/* SECTION HEADER */
+.section-label {
+text-align: center;
+font-family: 'Playfair Display', serif;
+color: #D4AF37;
+font-size: 1.9rem;
+font-weight: 500;
+max-width: 1050px;
+margin: 0 auto 10px auto;
+padding: 0 20px;
+}
+/* FOOTER */
+footer {
+text-align: center;
+padding: 30px 15px;
+background: #071428;
+font-size: 0.6rem;
+color: #D4AF37;
+border-top: 1px solid rgba(255,255,255,0.05);
+}
+footer p {
+max-width: 950px;
+margin: 0.5rem auto;
+}
+/* ANIMATIONS */
+@keyframes fadeIn {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+/* MOBILE */
+@media(max-width: 900px) {
+.home-cards {
+grid-template-columns: 1fr;
+}
+}
+@media(max-width: 768px) {
+header {
+flex-direction: column;
+align-items: center;
+padding: 1.2rem 1rem;
+}
+nav {
+margin-top: 0.8rem;
+}
+nav a {
+margin: 0 0.75rem;
+display: inline-block;
+font-size: 1rem;
+}
+.hero h1 {
+font-size: 2.2rem;
+}
+.hero p {
+font-size: 1rem;
+}
+}
+</style>
+</head>
+<body>
 
+<header>
+<img src="logo.png" alt="Hansen Capital Management Logo">
+<nav>
+<a href="index.html">Home</a>
+<a href="about.html">About</a>
+<a href="approach.html">Approach</a>
+<a href="risk.html">Risk</a>
+<a href="accounting.html" class="active">Accounting</a>
+<a href="contact.html">Contact</a>
+</nav>
+</header>
+
+<main>
+
+<section class="hero">
+<h1>Accounting &amp; Bookkeeping Services</h1>
+<p>
+Beyond fund management, Hansen Capital Management LLC provides disciplined
+bookkeeping and accounting support for small businesses — the same rigor
+we apply to portfolio risk, applied to your books.
+</p>
+<p>
+Monthly bookkeeping, catch-up cleanups, and financial reporting, delivered
+through a private client portal where you can track your numbers and share
+documents securely.
+</p>
+</section>
+
+<section class="portal-cta">
+<div class="portal-box">
+<h2>Existing Client?</h2>
+<p>
+Log in to your portal to view your KPI dashboard, check on the status of
+your books, and upload documents.
+</p>
+<a href="login.html" class="btn">Client Login</a>
+</div>
+</section>
+
+<h2 class="section-label">Services</h2>
+
+<section class="home-cards">
+<div class="card">
+<h2>Monthly Bookkeeping</h2>
+<p>
+Ongoing categorization, reconciliation, and monthly financial statements
+so you always know where the business stands.
+</p>
+</div>
+<div class="card">
+<h2>Catch-Up &amp; Cleanup</h2>
+<p>
+Behind on your books? We reconstruct and reconcile prior periods so you
+start monthly service on a clean, accurate baseline.
+</p>
+</div>
+<div class="card">
+<h2>KPI Reporting</h2>
+<p>
+Cash position, margins, and runway tracked and delivered through your
+client portal — not buried in a spreadsheet you never open.
+</p>
+</div>
+</section>
+
+</main>
+
+<footer>
+<p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
+<p>
+Accounting and bookkeeping services are offered separately from investment
+management activities and do not constitute investment advice.
+</p>
+</footer>
+
+</body>
+</html>
