@@ -5,5 +5,5 @@
 // works within the row-level security rules defined in schema.sql. It is
 // NOT a secret key and does not need to be hidden.
 
-const SUPABASE_URL = "https://supabase.com/dashboard/project/gboebdgbebyoanlzrczn";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdib2ViZGdiZWJ5b2FubHpyY3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwNDQyMTcsImV4cCI6MjEwMTYyMDIxN30.rLNa160r0oFxHP1H5Gq5yiK8SUEGs7xcxcfmWaeBeBs";
+const SUPABASE_URL = "https://gboebdgbebyoanlzrczn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable__jo88I6DNnB2Uu-3iR5l0A_eP_pHfYJ";
