@@ -179,14 +179,14 @@ first month's books are closed.
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script>
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const DOCS_BUCKET = 'client-documents';
 
 let currentUser = null;
 let currentClient = null;
 
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
     return;
@@ -194,7 +194,7 @@ async function init() {
   currentUser = session.user;
 
   // Look up the client record linked to this logged-in user
-  const { data: client, error: clientErr } = await supabase
+  const { data: client, error: clientErr } = await supabaseClient
     .from('clients')
     .select('*')
     .eq('user_id', currentUser.id)
@@ -216,7 +216,7 @@ async function init() {
 }
 
 async function loadKpis() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('kpi_snapshots')
     .select('*')
     .eq('client_id', currentClient.id)
@@ -255,7 +255,7 @@ async function loadKpis() {
 }
 
 async function loadDocuments() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('documents')
     .select('*')
     .eq('client_id', currentClient.id)
@@ -294,12 +294,12 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
   try {
     for (const file of files) {
       const path = `${currentClient.id}/${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage
+      const { error: uploadErr } = await supabaseClient.storage
         .from(DOCS_BUCKET)
         .upload(path, file);
       if (uploadErr) throw uploadErr;
 
-      const { error: dbErr } = await supabase.from('documents').insert({
+      const { error: dbErr } = await supabaseClient.from('documents').insert({
         client_id: currentClient.id,
         filename: file.name,
         storage_path: path,
@@ -320,7 +320,7 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   window.location.href = 'login.html';
 });
 
