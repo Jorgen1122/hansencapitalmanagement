@@ -267,13 +267,35 @@ async function loadDocuments() {
     return;
   }
   document.getElementById('no-docs').style.display = 'none';
-  rows.innerHTML = data.map(d => `
-    <tr>
-      <td>${d.filename}</td>
-      <td>${new Date(d.uploaded_at).toLocaleDateString()}</td>
-      <td>${d.status}</td>
-    </tr>
-  `).join('');
+  rows.innerHTML = '';
+  for (const d of data) {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = d.filename;
+    const tdDate = document.createElement('td');
+    tdDate.textContent = new Date(d.uploaded_at).toLocaleDateString();
+    const tdStatus = document.createElement('td');
+    tdStatus.textContent = d.status;
+    tr.append(tdName, tdDate, tdStatus);
+    rows.appendChild(tr);
+  }
+}
+
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+];
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per file
+
+// Strip anything that isn't a safe filename character, so uploaded names
+// can't smuggle path separators or unusual characters into storage keys.
+function sanitizeFilename(name) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 150);
 }
 
 document.getElementById('upload-btn').addEventListener('click', async () => {
@@ -286,6 +308,19 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
     return;
   }
 
+  for (const file of files) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      statusEl.textContent = `"${file.name}" isn't an accepted file type. Please upload PDF, JPG, PNG, HEIC, XLS/XLSX, or CSV files.`;
+      statusEl.className = 'error';
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      statusEl.textContent = `"${file.name}" is over the 25 MB limit.`;
+      statusEl.className = 'error';
+      return;
+    }
+  }
+
   const btn = document.getElementById('upload-btn');
   btn.disabled = true;
   statusEl.textContent = 'Uploading…';
@@ -293,7 +328,8 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
 
   try {
     for (const file of files) {
-      const path = `${currentClient.id}/${Date.now()}_${file.name}`;
+      const safeName = sanitizeFilename(file.name);
+      const path = `${currentClient.id}/${Date.now()}_${safeName}`;
       const { error: uploadErr } = await supabaseClient.storage
         .from(DOCS_BUCKET)
         .upload(path, file);
