@@ -172,7 +172,7 @@ async function handleForgotPassword() {
   setMessage('Sending reset link…', '');
   try {
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://hansencapitalmanagement.com/reset-password.html',
+      redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
     });
     if (error) throw error;
     setMessage('If that email has an account, a reset link has been sent.', 'success');
