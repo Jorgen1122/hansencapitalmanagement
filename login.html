@@ -130,6 +130,9 @@ color: #D4AF37;
 <span id="toggle-text">New client?</span>
 <a id="toggle-link" onclick="toggleMode()">Create an account</a>
 </div>
+<div class="toggle-mode" id="forgot-row">
+<a id="forgot-link" onclick="handleForgotPassword()">Forgot password?</a>
+</div>
 </div>
 </div>
 
@@ -150,6 +153,7 @@ function toggleMode() {
   document.getElementById('submit-btn').textContent = mode === 'login' ? 'Log In' : 'Sign Up';
   document.getElementById('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
   document.getElementById('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
+  document.getElementById('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
   setMessage('', '');
 }
 
@@ -157,6 +161,24 @@ function setMessage(text, cls) {
   const el = document.getElementById('message');
   el.textContent = text;
   el.className = cls || '';
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('email').value.trim();
+  if (!email) {
+    setMessage('Enter your email above first, then click "Forgot password?"', 'error');
+    return;
+  }
+  setMessage('Sending reset link…', '');
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://hansencapitalmanagement.com/reset-password.html',
+    });
+    if (error) throw error;
+    setMessage('If that email has an account, a reset link has been sent.', 'success');
+  } catch (err) {
+    setMessage(err.message || 'Something went wrong.', 'error');
+  }
 }
 
 // If already logged in, go straight to dashboard
