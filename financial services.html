@@ -23,14 +23,8 @@ animation: fadeInBody 1.5s ease forwards;
 from { opacity: 0; }
 to { opacity: 1; }
 }
-a {
-color: #D4AF37;
-text-decoration: none;
-transition: color 0.3s ease;
-}
-a:hover {
-text-decoration: underline;
-}
+a { color: #D4AF37; text-decoration: none; transition: color 0.3s ease; }
+a:hover { text-decoration: underline; }
 
 .branch-bar {
 background: #030D1D;
@@ -55,26 +49,14 @@ box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 transform: translateY(-80px);
 animation: slideDown 1.2s ease forwards;
 }
-@keyframes slideDown {
-to { transform: translateY(0); }
-}
+@keyframes slideDown { to { transform: translateY(0); } }
 header img { height: 70px; transition: transform 0.3s ease; }
 header img:hover { transform: scale(1.05); }
-nav a {
-margin-left: 2rem;
-font-weight: 500;
-font-size: 1.1rem;
-opacity: 0;
-animation: fadeIn 1.2s ease forwards 0.8s;
-}
-nav a.active {
-border-bottom: 1px solid #D4AF37;
-padding-bottom: 4px;
-}
+nav a { margin-left: 2rem; font-weight: 500; font-size: 1.1rem; opacity: 0; animation: fadeIn 1.2s ease forwards 0.8s; }
+nav a.active { border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
 
 main { min-height: 100vh; }
 
-/* HERO */
 .hero {
 min-height: 50vh;
 display: flex;
@@ -109,12 +91,8 @@ color: #E8E0C5;
 max-width: 720px;
 margin: 0 auto 0.8rem auto;
 }
-.hero-cta {
-margin-top: 1.5rem;
-}
-.hero-cta a {
-margin: 0 10px;
-}
+.hero-cta { margin-top: 1.5rem; }
+.hero-cta a { margin: 0 10px; }
 
 .btn {
 display: inline-block;
@@ -139,7 +117,6 @@ transition: all 0.3s ease;
 }
 .btn-outline:hover { background: rgba(212,175,55,0.1); text-decoration: none; }
 
-/* SECTION HEADER */
 .section-label {
 text-align: center;
 font-family: 'Playfair Display', serif;
@@ -159,7 +136,6 @@ margin: 0 auto 30px auto;
 padding: 0 20px;
 }
 
-/* TRACK CARDS */
 .track-cards {
 display: grid;
 grid-template-columns: repeat(3, 1fr);
@@ -173,7 +149,7 @@ background: #071428;
 border: 1px solid rgba(212, 175, 55, 0.25);
 padding: 30px 26px;
 text-align: left;
-min-height: 200px;
+min-height: 210px;
 display: flex;
 flex-direction: column;
 }
@@ -191,99 +167,27 @@ font-size: 1.4rem;
 font-weight: 500;
 margin: 0 0 10px 0;
 }
-.track-card p {
-color: #E8E0C5;
-font-size: 0.95rem;
-flex-grow: 1;
-}
-.track-card a {
-display: inline-block;
-margin-top: 14px;
-font-weight: 600;
-font-size: 0.9rem;
-}
+.track-card p { color: #E8E0C5; font-size: 0.95rem; flex-grow: 1; }
+.track-card a { display: inline-block; margin-top: 14px; font-weight: 600; font-size: 0.9rem; }
 
-/* INSIGHT EXAMPLE */
-.insight-section {
-max-width: 1050px;
-margin: 0 auto;
-padding: 20px 20px 60px 20px;
-}
-.insight-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
-}
-.insight-box {
-background: #071428;
-border: 1px solid rgba(212, 175, 55, 0.25);
-padding: 28px;
-text-align: left;
-}
-.insight-box.advisory {
-border-color: rgba(212, 175, 55, 0.55);
-}
-.insight-box .eyebrow {
-font-size: 0.75rem;
-letter-spacing: 1px;
-text-transform: uppercase;
-color: #8FA0C4;
-margin-bottom: 10px;
-}
+.insight-section { max-width: 1050px; margin: 0 auto; padding: 20px 20px 60px 20px; }
+.insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.insight-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 28px; text-align: left; }
+.insight-box.advisory { border-color: rgba(212, 175, 55, 0.55); }
+.insight-box .eyebrow { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: #8FA0C4; margin-bottom: 10px; }
 .insight-box.advisory .eyebrow { color: #D4AF37; }
-.insight-box p {
-color: #E8E0C5;
-font-size: 0.95rem;
-margin: 4px 0;
-}
-.insight-box .figure {
-font-family: 'Playfair Display', serif;
-color: #D4AF37;
-}
+.insight-box p { color: #E8E0C5; font-size: 0.95rem; margin: 4px 0; }
+.insight-box .figure { font-family: 'Playfair Display', serif; color: #D4AF37; }
 
-/* PORTAL CTA */
-.portal-cta {
-max-width: 1050px;
-margin: 0 auto 60px auto;
-padding: 0 20px;
-}
-.portal-box {
-background: #071428;
-border: 1px solid rgba(212, 175, 55, 0.4);
-padding: 34px;
-text-align: center;
-}
-.portal-box h2 {
-font-family: 'Playfair Display', serif;
-color: #D4AF37;
-font-size: 1.4rem;
-font-weight: 500;
-margin-top: 0;
-}
-.portal-box p {
-color: #E8E0C5;
-max-width: 600px;
-margin: 0 auto 1.2rem auto;
-font-size: 0.9rem;
-}
+.portal-cta { max-width: 1050px; margin: 0 auto 60px auto; padding: 0 20px; }
+.portal-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.4); padding: 34px; text-align: center; }
+.portal-box h2 { font-family: 'Playfair Display', serif; color: #D4AF37; font-size: 1.4rem; font-weight: 500; margin-top: 0; }
+.portal-box p { color: #E8E0C5; max-width: 600px; margin: 0 auto 1.2rem auto; font-size: 0.9rem; }
 
-footer {
-text-align: center;
-padding: 30px 15px;
-background: #071428;
-font-size: 0.6rem;
-color: #D4AF37;
-border-top: 1px solid rgba(255,255,255,0.05);
-}
-footer p {
-max-width: 950px;
-margin: 0.5rem auto;
-}
+footer { text-align: center; padding: 30px 15px; background: #071428; font-size: 0.6rem; color: #D4AF37; border-top: 1px solid rgba(255,255,255,0.05); }
+footer p { max-width: 950px; margin: 0.5rem auto; }
 
-@keyframes fadeIn {
-from { opacity: 0; }
-to { opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 @media(max-width: 900px) {
 .track-cards { grid-template-columns: 1fr; }
@@ -318,12 +222,12 @@ nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
 <main>
 
 <section class="hero">
-<h1>Bookkeeping, Tax &amp; Financial Advisory for Small Businesses</h1>
-<p class="tagline">We maintain your books, understand your numbers, and help you make decisions from them.</p>
+<h1>Bookkeeping, Tax &amp; Financial Analytics for Small Businesses</h1>
+<p class="tagline">We track your numbers, then tell you what they mean.</p>
 <p>
-The same discipline we apply to portfolio risk, applied to your business —
-monthly bookkeeping and personal tax handled with precision, and turned into
-the kind of financial clarity that actually changes decisions.
+A systems-driven approach to your books — the same discipline we apply to
+portfolio risk, applied to your business — with the reporting, forecasting,
+and margin analysis built in, not sold as an upgrade.
 </p>
 <div class="hero-cta">
 <a href="contact2.html" class="btn">Get Started</a>
@@ -332,37 +236,35 @@ the kind of financial clarity that actually changes decisions.
 </section>
 
 <h2 class="section-label">What We Do</h2>
-<p class="section-sub">Three tracks, one relationship — bookkeeping is the foundation everything else is built on.</p>
+<p class="section-sub">Three ways to work with us, depending on where your books stand today.</p>
 <section class="track-cards">
 <div class="track-card">
-<div class="eyebrow">Track 1</div>
-<h3>Bookkeeping</h3>
+<div class="eyebrow">Recurring</div>
+<h3>Bookkeeping &amp; Analytics</h3>
 <p>
-Monthly categorization, reconciliations, financial statements, AR/AP,
-sales tax and 1099 support — the accurate, current books every other
-service depends on.
+Monthly categorization, reconciliation, and financial statements — plus the
+dashboard, forecasting, and margin analysis built from the same data. One
+service, everything included.
 </p>
-<a href="services.html#bookkeeping">See bookkeeping plans &rarr;</a>
+<a href="services.html#bookkeeping">See what's included &rarr;</a>
 </div>
 <div class="track-card">
-<div class="eyebrow">Track 2</div>
-<h3>Personal Tax</h3>
+<div class="eyebrow">One-Time</div>
+<h3>Catch-Up &amp; Cleanup</h3>
 <p>
-Individual returns, Schedule C, investment income and capital gains,
-crypto, and quarterly estimates — filed by someone who actually
-understands a brokerage statement.
+Behind on your books? We reconstruct and reconcile prior periods so you
+start on a clean, accurate baseline — scoped and quoted per engagement.
 </p>
-<a href="services.html#personal-tax">See tax services &rarr;</a>
+<a href="services.html#catch-up">Learn more &rarr;</a>
 </div>
 <div class="track-card">
-<div class="eyebrow">Track 3</div>
-<h3>Advisory</h3>
+<div class="eyebrow">Seasonal</div>
+<h3>Tax</h3>
 <p>
-Once we know your numbers, we help you act on them — cash flow
-forecasting, margin analysis, pricing, and budgeting built on your
-own financial history.
+Personal returns, capital gains, and business entity filings — coordinated
+with your books, not handled in isolation at year-end.
 </p>
-<a href="services.html#advisory">See advisory tiers &rarr;</a>
+<a href="services.html#tax">See tax services &rarr;</a>
 </div>
 </section>
 
@@ -377,7 +279,7 @@ own financial history.
 <p class="figure">Gross Profit: $210,000</p>
 </div>
 <div class="insight-box advisory">
-<div class="eyebrow">Advisory Layer</div>
+<div class="eyebrow">Analytics</div>
 <p>
 "Your gross margin declined from 56% to 50% over the last six
 months. Materials account for roughly 70% of that deterioration.
@@ -401,7 +303,7 @@ annualized gross profit being lost."
 <footer>
 <p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
 <p>
-Bookkeeping, tax, and advisory services are offered separately from investment
+Bookkeeping, tax, and analytics services are offered separately from investment
 management activities and do not constitute investment advice.
 </p>
 </footer>
