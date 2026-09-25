@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Accounting Services | Hansen Capital Management</title>
+<title>Financial Services | Hansen Capital Management</title>
 <link rel="icon" type="image/png" href="bitlogo.png">
 <link rel="apple-touch-icon" href="bitlogo.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
@@ -31,6 +31,22 @@ transition: color 0.3s ease;
 a:hover {
 text-decoration: underline;
 }
+
+/* BRANCH BAR — link back up to the fund site */
+.branch-bar {
+background: #030D1D;
+padding: 0.5rem 3rem;
+text-align: right;
+font-size: 0.8rem;
+border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+.branch-bar a {
+opacity: 0.75;
+}
+.branch-bar a:hover {
+opacity: 1;
+}
+
 /* HEADER */
 header {
 background: #071428;
@@ -67,10 +83,12 @@ nav a.active {
 border-bottom: 1px solid #D4AF37;
 padding-bottom: 4px;
 }
+
 /* MAIN */
 main {
 min-height: 100vh;
 }
+
 /* HERO */
 .hero {
 min-height: 60vh;
@@ -98,6 +116,7 @@ color: #E8E0C5;
 max-width: 760px;
 margin: 0 auto 1.2rem auto;
 }
+
 /* PORTAL CTA */
 .portal-cta {
 max-width: 1050px;
@@ -136,6 +155,7 @@ transition: background 0.3s ease;
 background: #E8C458;
 text-decoration: none;
 }
+
 /* HOME CARDS */
 .home-cards {
 display: grid;
@@ -168,6 +188,7 @@ display: inline-block;
 margin-top: 12px;
 font-weight: 600;
 }
+
 /* SECTION HEADER */
 .section-label {
 text-align: center;
@@ -179,6 +200,7 @@ max-width: 1050px;
 margin: 0 auto 10px auto;
 padding: 0 20px;
 }
+
 /* FOOTER */
 footer {
 text-align: center;
@@ -192,11 +214,13 @@ footer p {
 max-width: 950px;
 margin: 0.5rem auto;
 }
+
 /* ANIMATIONS */
 @keyframes fadeIn {
 from { opacity: 0; }
 to { opacity: 1; }
 }
+
 /* MOBILE */
 @media(max-width: 900px) {
 .home-cards {
@@ -223,30 +247,36 @@ font-size: 2.2rem;
 .hero p {
 font-size: 1rem;
 }
+.branch-bar {
+text-align: center;
+padding: 0.5rem 1rem;
+}
 }
 </style>
 </head>
 <body>
 
+<div class="branch-bar">
+<a href="index.html">&larr; Hansen Capital Management</a>
+</div>
+
 <header>
 <img src="logo.png" alt="Hansen Capital Management Logo">
 <nav>
-<a href="index.html" class="active">Home</a>
-<a href="financial services.html" class="active">Financial Services</a>
-<a href="services.html" class="active">Services</a>
-<a href="contact2.html" class="active">Contact</a>
-<a href="login.html" class="active">Login</a>
+<a href="financial services.html" class="active">Home</a>
+<a href="services.html">Services</a>
+<a href="contact2.html">Contact</a>
+<a href="login.html">Client Login</a>
 </nav>
 </header>
 
 <main>
-
 <section class="hero">
-<h1>Accounting &amp; Bookkeeping Services</h1>
+<h1>Bookkeeping, Tax &amp; Financial Advisory Services</h1>
 <p>
 Beyond fund management, Hansen Capital Management LLC provides disciplined
-bookkeeping and accounting support for small businesses — the same rigor
-we apply to portfolio risk, applied to your books.
+bookkeeping, tax, and financial advisory support for individuals and small
+businesses — the same rigor we apply to portfolio risk, applied to your books.
 </p>
 <p>
 Monthly bookkeeping, catch-up cleanups, and financial reporting, delivered
@@ -267,7 +297,6 @@ your books, and upload documents.
 </section>
 
 <h2 class="section-label">Services</h2>
-
 <section class="home-cards">
 <div class="card">
 <h2>Monthly Bookkeeping</h2>
@@ -291,13 +320,12 @@ client portal — not buried in a spreadsheet you never open.
 </p>
 </div>
 </section>
-
 </main>
 
 <footer>
 <p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
 <p>
-Accounting and bookkeeping services are offered separately from investment
+Bookkeeping, tax, and advisory services are offered separately from investment
 management activities and do not constitute investment advice.
 </p>
 </footer>
