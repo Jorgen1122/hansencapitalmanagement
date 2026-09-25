@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Services | Hansen Capital Management</title>
+<link rel="icon" type="image/png" href="bitlogo.png">
+<link rel="apple-touch-icon" href="bitlogo.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+margin: 0;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+background-color: #030D1D;
+color: #D4AF37;
+line-height: 1.8;
+text-align: center;
+overflow-x: hidden;
+opacity: 0;
+animation: fadeInBody 1.5s ease forwards;
+}
+@keyframes fadeInBody {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+a { color: #D4AF37; text-decoration: none; transition: color 0.3s ease; }
+a:hover { text-decoration: underline; }
+
+.branch-bar {
+background: #030D1D;
+padding: 0.5rem 3rem;
+text-align: right;
+font-size: 0.8rem;
+border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+.branch-bar a { opacity: 0.75; }
+.branch-bar a:hover { opacity: 1; }
+
+header {
+background: #071428;
+padding: 1.2rem 3rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+position: sticky;
+top: 0;
+z-index: 1000;
+box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+header img { height: 70px; transition: transform 0.3s ease; }
+header img:hover { transform: scale(1.05); }
+nav a { margin-left: 2rem; font-weight: 500; font-size: 1.1rem; }
+nav a.active { border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
+
+main { min-height: 100vh; }
+
+/* PAGE HERO */
+.page-hero {
+padding: 70px 20px 30px 20px;
+max-width: 900px;
+margin: auto;
+}
+.page-hero h1 {
+font-family: 'Playfair Display', serif;
+font-size: 2.4rem;
+color: #D4AF37;
+font-weight: 500;
+margin: 0 0 1rem 0;
+}
+.page-hero p {
+font-size: 1.05rem;
+color: #E8E0C5;
+max-width: 700px;
+margin: 0 auto;
+}
+
+/* TRACK NAV — jump links */
+.track-nav {
+display: flex;
+justify-content: center;
+gap: 14px;
+flex-wrap: wrap;
+margin: 30px auto 10px auto;
+padding: 0 20px;
+}
+.track-nav a {
+border: 1px solid rgba(212, 175, 55, 0.4);
+padding: 8px 20px;
+font-size: 0.85rem;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+}
+.track-nav a:hover { background: rgba(212,175,55,0.1); text-decoration: none; }
+
+/* SECTION HEADER */
+.section-block {
+max-width: 1100px;
+margin: 0 auto;
+padding: 70px 20px 30px 20px;
+scroll-margin-top: 100px;
+border-top: 1px solid rgba(212, 175, 55, 0.12);
+}
+.section-block:first-of-type { border-top: none; }
+.section-eyebrow {
+font-size: 0.8rem;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+color: #8FA0C4;
+margin-bottom: 8px;
+}
+.section-block h2 {
+font-family: 'Playfair Display', serif;
+color: #D4AF37;
+font-size: 2rem;
+font-weight: 500;
+margin: 0 0 10px 0;
+}
+.section-block > p.lede {
+color: #E8E0C5;
+max-width: 720px;
+margin: 0 auto 40px auto;
+font-size: 1rem;
+}
+
+/* PRICING TIERS */
+.tier-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 22px;
+text-align: left;
+}
+.tier-card {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.25);
+padding: 30px 26px;
+display: flex;
+flex-direction: column;
+}
+.tier-card.featured {
+border-color: #D4AF37;
+box-shadow: 0 0 24px rgba(212, 175, 55, 0.12);
+}
+.tier-card .tier-name {
+font-family: 'Playfair Display', serif;
+color: #D4AF37;
+font-size: 1.4rem;
+font-weight: 500;
+margin: 0 0 4px 0;
+}
+.tier-card .tier-desc {
+color: #8FA0C4;
+font-size: 0.85rem;
+margin-bottom: 18px;
+}
+.tier-card ul {
+list-style: none;
+padding: 0;
+margin: 0;
+flex-grow: 1;
+}
+.tier-card li {
+color: #E8E0C5;
+font-size: 0.92rem;
+padding: 6px 0 6px 20px;
+position: relative;
+}
+.tier-card li::before {
+content: "—";
+position: absolute;
+left: 0;
+color: #D4AF37;
+}
+.tier-card li.included {
+color: #8FA0C4;
+font-size: 0.85rem;
+font-style: italic;
+}
+
+/* SIMPLE SERVICE LIST */
+.service-list {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 16px;
+text-align: left;
+max-width: 900px;
+margin: 0 auto;
+}
+.service-item {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.2);
+padding: 18px 22px;
+color: #E8E0C5;
+font-size: 0.95rem;
+}
+.service-item strong {
+display: block;
+color: #D4AF37;
+font-size: 1rem;
+margin-bottom: 4px;
+}
+
+/* CONTACT CTA */
+.cta-block {
+max-width: 700px;
+margin: 60px auto 80px auto;
+padding: 0 20px;
+}
+.cta-box {
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.4);
+padding: 40px;
+}
+.cta-box p {
+color: #E8E0C5;
+margin-bottom: 20px;
+}
+.btn {
+display: inline-block;
+background: #D4AF37;
+color: #030D1D;
+font-weight: 600;
+padding: 14px 36px;
+border-radius: 2px;
+letter-spacing: 0.5px;
+transition: background 0.3s ease;
+}
+.btn:hover { background: #E8C458; text-decoration: none; }
+
+footer {
+text-align: center;
+padding: 30px 15px;
+background: #071428;
+font-size: 0.6rem;
+color: #D4AF37;
+border-top: 1px solid rgba(255,255,255,0.05);
+}
+footer p { max-width: 950px; margin: 0.5rem auto; }
+
+@media(max-width: 900px) {
+.tier-grid { grid-template-columns: 1fr; }
+.service-list { grid-template-columns: 1fr; }
+}
+@media(max-width: 768px) {
+header { flex-direction: column; align-items: center; padding: 1.2rem 1rem; }
+nav { margin-top: 0.8rem; }
+nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
+.branch-bar { text-align: center; padding: 0.5rem 1rem; }
+.page-hero h1 { font-size: 1.9rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="branch-bar">
+<a href="index.html">&larr; Hansen Capital Management</a>
+</div>
+
+<header>
+<img src="logo.png" alt="Hansen Capital Management Logo">
+<nav>
+<a href="financial services.html">Home</a>
+<a href="services.html" class="active">Services</a>
+<a href="contact2.html">Contact</a>
+<a href="login.html">Client Login</a>
+</nav>
+</header>
+
+<main>
+
+<section class="page-hero">
+<h1>Services &amp; Pricing</h1>
+<p>
+Bookkeeping is the foundation. Personal tax runs alongside it. Advisory is
+built on top of both, once we know your numbers well enough to say something
+useful about them.
+</p>
+</section>
+
+<nav class="track-nav">
+<a href="#bookkeeping">Bookkeeping</a>
+<a href="#advisory">Advisory</a>
+<a href="#personal-tax">Personal Tax</a>
+<a href="#year-end">Year-End Coordination</a>
+</nav>
+
+<!-- BOOKKEEPING TIERS -->
+<section class="section-block" id="bookkeeping">
+<div class="section-eyebrow">Track 1 &mdash; Recurring</div>
+<h2>Bookkeeping</h2>
+<p class="lede">
+Three tiers, one relationship. Every tier includes accurate, current books —
+higher tiers add the reporting and forward-looking work built on top of them.
+</p>
+<div class="tier-grid">
+
+<div class="tier-card">
+<div class="tier-name">Essential</div>
+<div class="tier-desc">Clean, current books</div>
+<ul>
+<li>Monthly transaction categorization</li>
+<li>Bank &amp; credit card reconciliations</li>
+<li>Monthly financial statements</li>
+<li>Basic reporting</li>
+<li>Year-end books prepared for tax filing</li>
+</ul>
+</div>
+
+<div class="tier-card featured">
+<div class="tier-name">Professional</div>
+<div class="tier-desc">Bookkeeping + insight</div>
+<ul>
+<li class="included">Everything in Essential, plus:</li>
+<li>KPI dashboard (client portal)</li>
+<li>AR/AP tracking &amp; aging</li>
+<li>Budget vs. actual reporting</li>
+<li>Monthly financial review call</li>
+<li>Cash-flow monitoring</li>
+<li>Sales tax &amp; 1099 support</li>
+</ul>
+</div>
+
+<div class="tier-card">
+<div class="tier-name">Advisory</div>
+<div class="tier-desc">Bookkeeping + CFO</div>
+<ul>
+<li class="included">Everything in Professional, plus:</li>
+<li>Cash-flow forecasting</li>
+<li>Runway analysis</li>
+<li>Profitability &amp; margin analysis</li>
+<li>Pricing analysis</li>
+<li>Budget development</li>
+<li>Quarterly strategic review</li>
+<li>Decision-support modeling</li>
+</ul>
+</div>
+
+</div>
+</section>
+
+<!-- ADVISORY IN PRACTICE -->
+<section class="section-block" id="advisory">
+<div class="section-eyebrow">Track 3 &mdash; High-Margin</div>
+<h2>Advisory, In Practice</h2>
+<p class="lede">
+Advisory isn't a separate consulting engagement — it's what your bookkeeping
+data becomes once there's enough history behind it to say something specific.
+</p>
+<div class="service-list">
+<div class="service-item">
+<strong>Cash-Flow Forecasting</strong>
+Forward-looking projections built on your actual transaction history, not estimates.
+</div>
+<div class="service-item">
+<strong>Margin &amp; Profitability Analysis</strong>
+By job, product line, or client segment — where the margin is actually coming from.
+</div>
+<div class="service-item">
+<strong>Pricing Analysis</strong>
+Grounded in real COGS and margin data, not guesswork.
+</div>
+<div class="service-item">
+<strong>Budget vs. Actual Review</strong>
+A recurring check on where the business is tracking against plan.
+</div>
+</div>
+</section>
+
+<!-- PERSONAL TAX -->
+<section class="section-block" id="personal-tax">
+<div class="section-eyebrow">Track 2 &mdash; Seasonal</div>
+<h2>Personal Tax</h2>
+<p class="lede">
+Individual returns handled with the same precision as the books — including
+the investment income most preparers treat as an afterthought.
+</p>
+<div class="service-list">
+<div class="service-item">
+<strong>Individual Returns (Form 1040)</strong>
+Full-service preparation and filing.
+</div>
+<div class="service-item">
+<strong>Schedule C</strong>
+For self-employed and sole-proprietor income.
+</div>
+<div class="service-item">
+<strong>Investment Income &amp; Capital Gains</strong>
+Brokerage statements, cost basis, and Schedule D handled by someone who reads them for a living.
+</div>
+<div class="service-item">
+<strong>Crypto &amp; Digital Assets</strong>
+Transaction-level reporting for digital asset activity.
+</div>
+<div class="service-item">
+<strong>Quarterly Estimated Taxes</strong>
+Calculated and tracked throughout the year, not just at filing.
+</div>
+</div>
+</section>
+
+<!-- YEAR-END TAX COORDINATION -->
+<section class="section-block" id="year-end">
+<div class="section-eyebrow">Included With Bookkeeping</div>
+<h2>Year-End Tax Coordination</h2>
+<p class="lede">
+Not a separate service — the point where a year of clean books turns into
+a return-ready package, whether we file it or your CPA does.
+</p>
+<div class="service-list">
+<div class="service-item">
+<strong>Year-End Cleanup</strong>
+Final reconciliation and close-out of the books.
+</div>
+<div class="service-item">
+<strong>Tax-Ready Financial Statements</strong>
+P&amp;L, balance sheet, and supporting schedules formatted for filing.
+</div>
+<div class="service-item">
+<strong>Fixed-Asset &amp; Depreciation Schedules</strong>
+Maintained throughout the year, finalized at close.
+</div>
+<div class="service-item">
+<strong>1099 &amp; Owner Distribution Summaries</strong>
+Contractor information and owner draws/distributions, organized for filing.
+</div>
+<div class="service-item">
+<strong>CPA-Ready Package</strong>
+If you work with an outside CPA or EA, we coordinate directly and hand off a complete package.
+</div>
+<div class="service-item">
+<strong>Tax-Planning Data</strong>
+The numbers your CPA or preparer needs to plan ahead, not just file behind.
+</div>
+</div>
+</section>
+
+<div class="cta-block">
+<div class="cta-box">
+<p>Not sure which tier fits? Tell us where your books stand today.</p>
+<a href="contact2.html" class="btn">Get in Touch</a>
+</div>
+</div>
+
+</main>
+
+<footer>
+<p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
+<p>
+Bookkeeping, tax, and advisory services are offered separately from investment
+management activities and do not constitute investment advice.
+</p>
+</footer>
+
+</body>
+</html>
