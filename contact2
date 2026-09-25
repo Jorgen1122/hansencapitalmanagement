@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact | Hansen Capital Management</title>
+<link rel="icon" type="image/png" href="bitlogo.png">
+<link rel="apple-touch-icon" href="bitlogo.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+margin: 0;
+font-family: 'Helvetica Neue', Arial, sans-serif;
+background-color: #030D1D;
+color: #D4AF37;
+line-height: 1.8;
+text-align: center;
+overflow-x: hidden;
+opacity: 0;
+animation: fadeInBody 1.5s ease forwards;
+}
+@keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
+a { color: #D4AF37; text-decoration: none; transition: color 0.3s ease; }
+a:hover { text-decoration: underline; }
+
+.branch-bar { background: #030D1D; padding: 0.5rem 3rem; text-align: right; font-size: 0.8rem; border-bottom: 1px solid rgba(212, 175, 55, 0.15); }
+.branch-bar a { opacity: 0.75; }
+.branch-bar a:hover { opacity: 1; }
+
+header {
+background: #071428;
+padding: 1.2rem 3rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+position: sticky;
+top: 0;
+z-index: 1000;
+box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+header img { height: 70px; transition: transform 0.3s ease; }
+header img:hover { transform: scale(1.05); }
+nav a { margin-left: 2rem; font-weight: 500; font-size: 1.1rem; }
+nav a.active { border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
+
+main { min-height: 100vh; }
+
+.page-hero { padding: 70px 20px 20px 20px; max-width: 800px; margin: auto; }
+.page-hero h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: #D4AF37; font-weight: 500; margin: 0 0 1rem 0; }
+.page-hero p { font-size: 1.05rem; color: #E8E0C5; max-width: 650px; margin: 0 auto; }
+
+.booking-wrap {
+max-width: 900px;
+margin: 30px auto 20px auto;
+padding: 0 20px;
+}
+.calendly-inline-widget {
+min-width: 320px;
+height: 700px;
+background: #071428;
+border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.alt-contact {
+max-width: 600px;
+margin: 20px auto 80px auto;
+padding: 30px 20px;
+}
+.alt-contact p {
+color: #8FA0C4;
+font-size: 0.9rem;
+}
+.alt-contact a {
+font-weight: 600;
+}
+
+footer { text-align: center; padding: 30px 15px; background: #071428; font-size: 0.6rem; color: #D4AF37; border-top: 1px solid rgba(255,255,255,0.05); }
+footer p { max-width: 950px; margin: 0.5rem auto; }
+
+@media(max-width: 768px) {
+header { flex-direction: column; align-items: center; padding: 1.2rem 1rem; }
+nav { margin-top: 0.8rem; }
+nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
+.branch-bar { text-align: center; padding: 0.5rem 1rem; }
+.page-hero h1 { font-size: 1.9rem; }
+.calendly-inline-widget { height: 850px; }
+}
+</style>
+</head>
+<body>
+
+<div class="branch-bar">
+<a href="index.html">&larr; Hansen Capital Management</a>
+</div>
+
+<header>
+<img src="logo.png" alt="Hansen Capital Management Logo">
+<nav>
+<a href="financial services.html">Home</a>
+<a href="services.html">Services</a>
+<a href="contact2.html" class="active">Contact</a>
+<a href="login.html">Client Login</a>
+</nav>
+</header>
+
+<main>
+
+<section class="page-hero">
+<h1>Let's Talk About Your Books</h1>
+<p>
+Pick a time below for a short intro call. Tell us a bit about your business
+as part of booking, and we'll come prepared to talk specifics — not a
+generic sales pitch.
+</p>
+</section>
+
+<section class="booking-wrap">
+<!-- Calendly inline widget begin -->
+<div class="calendly-inline-widget" data-url="https://calendly.com/jorgen-hansencapitalmanagement/30min?background_color=071428&text_color=E8E0C5&primary_color=D4AF37"></div>
+<script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
+<!-- Calendly inline widget end -->
+</section>
+
+<section class="alt-contact">
+<p>
+Prefer email? Reach us directly at
+<a href="mailto:contact@hansencapitalmanagement.com">contact@hansencapitalmanagement.com</a>
+</p>
+</section>
+
+</main>
+
+<footer>
+<p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
+<p>
+Bookkeeping, tax, and analytics services are offered separately from investment
+management activities and do not constitute investment advice.
+</p>
+</footer>
+
+</body>
+</html>
