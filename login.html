@@ -1,3 +1,4 @@
+<!-- login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,116 +17,63 @@ line-height: 1.8;
 text-align: center;
 }
 a { color: #D4AF37; }
-header {
-background: #071428;
-padding: 1.2rem 3rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-}
+.branch-bar { background: #030D1D; padding: 0.5rem 3rem; text-align: right; font-size: 0.8rem; border-bottom: 1px solid rgba(212, 175, 55, 0.15); }
+.branch-bar a { opacity: 0.75; }
+.branch-bar a:hover { opacity: 1; }
+header { background: #071428; padding: 1.2rem 3rem; display: flex; justify-content: space-between; align-items: center; }
 header img { height: 70px; }
 nav a { margin-left: 2rem; font-weight: 500; }
-
-.login-wrap {
-min-height: 75vh;
-display: flex;
-align-items: center;
-justify-content: center;
-padding: 40px 20px;
-}
-.login-box {
-background: #071428;
-border: 1px solid rgba(212, 175, 55, 0.4);
-padding: 44px;
-width: 100%;
-max-width: 400px;
-text-align: left;
-}
-.login-box h1 {
-font-family: 'Playfair Display', serif;
-font-size: 1.7rem;
-font-weight: 500;
-text-align: center;
-margin-top: 0;
-}
-label {
-display: block;
-color: #E8E0C5;
-font-size: 0.9rem;
-margin: 14px 0 6px 0;
-}
-input {
-width: 100%;
-box-sizing: border-box;
-background: #030D1D;
-border: 1px solid rgba(212, 175, 55, 0.35);
-color: #E8E0C5;
-padding: 10px 12px;
-font-size: 1rem;
-font-family: 'Helvetica Neue', Arial, sans-serif;
-}
+nav a.active { border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
+.login-wrap { min-height: 75vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+.login-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.4); padding: 44px; width: 100%; max-width: 400px; text-align: left; }
+.login-box h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 500; text-align: center; margin-top: 0; }
+label { display: block; color: #E8E0C5; font-size: 0.9rem; margin: 14px 0 6px 0; }
+input { width: 100%; box-sizing: border-box; background: #030D1D; border: 1px solid rgba(212, 175, 55, 0.35); color: #E8E0C5; padding: 10px 12px; font-size: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; }
 input:focus { outline: 1px solid #D4AF37; }
-.btn {
-width: 100%;
-margin-top: 22px;
-background: #D4AF37;
-color: #030D1D;
-font-weight: 600;
-padding: 12px;
-border: none;
-font-size: 1rem;
-cursor: pointer;
-}
+.btn { width: 100%; margin-top: 22px; background: #D4AF37; color: #030D1D; font-weight: 600; padding: 12px; border: none; font-size: 1rem; cursor: pointer; }
 .btn:hover { background: #E8C458; }
 .btn:disabled { opacity: 0.6; cursor: default; }
-.toggle-mode {
-text-align: center;
-margin-top: 16px;
-font-size: 0.9rem;
-color: #E8E0C5;
-}
+.toggle-mode { text-align: center; margin-top: 16px; font-size: 0.9rem; color: #E8E0C5; }
 .toggle-mode a { cursor: pointer; }
-#message {
-margin-top: 14px;
-font-size: 0.9rem;
-min-height: 1.2em;
-}
+#message { margin-top: 14px; font-size: 0.9rem; min-height: 1.2em; }
 #message.error { color: #E77; }
 #message.success { color: #8FCB8F; }
-footer {
-text-align: center;
-padding: 20px 15px;
-background: #071428;
-font-size: 0.6rem;
-color: #D4AF37;
+footer { text-align: center; padding: 20px 15px; background: #071428; font-size: 0.6rem; color: #D4AF37; }
+@media(max-width: 768px) {
+header { flex-direction: column; align-items: center; padding: 1.2rem 1rem; }
+nav { margin-top: 0.8rem; }
+nav a { margin: 0 0.75rem; display: inline-block; }
+.branch-bar { text-align: center; padding: 0.5rem 1rem; }
 }
 </style>
 </head>
 <body>
 
+<div class="branch-bar">
+<a href="index.html">&larr; Hansen Capital Management</a>
+</div>
+
 <header>
 <img src="logo.png" alt="Hansen Capital Management Logo">
 <nav>
-<a href="index.html">Home</a>
-<a href="financial services.html">Financial Services</a>
+<a href="financial services.html">Home</a>
+<a href="services.html">Services</a>
+<a href="contact2.html">Contact</a>
+<a href="login.html" class="active">Client Login</a>
 </nav>
 </header>
 
 <div class="login-wrap">
 <div class="login-box">
 <h1 id="form-title">Client Login</h1>
-
 <form id="auth-form">
 <label for="email">Email</label>
 <input type="email" id="email" required autocomplete="email">
-
 <label for="password">Password</label>
 <input type="password" id="password" required autocomplete="current-password">
-
 <button type="submit" class="btn" id="submit-btn">Log In</button>
 <div id="message"></div>
 </form>
-
 <div class="toggle-mode">
 <span id="toggle-text">New client?</span>
 <a id="toggle-link" onclick="toggleMode()">Create an account</a>
@@ -144,74 +92,70 @@ color: #D4AF37;
 <script src="supabase-config.js"></script>
 <script>
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let mode = 'login'; // or 'signup'
+let mode = 'login';
 
 function toggleMode() {
-  mode = mode === 'login' ? 'signup' : 'login';
-  document.getElementById('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
-  document.getElementById('submit-btn').textContent = mode === 'login' ? 'Log In' : 'Sign Up';
-  document.getElementById('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
-  document.getElementById('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
-  document.getElementById('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
-  setMessage('', '');
+mode = mode === 'login' ? 'signup' : 'login';
+document.getElementById('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
+document.getElementById('submit-btn').textContent = mode === 'login' ? 'Log In' : 'Sign Up';
+document.getElementById('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
+document.getElementById('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
+document.getElementById('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
+setMessage('', '');
 }
 
 function setMessage(text, cls) {
-  const el = document.getElementById('message');
-  el.textContent = text;
-  el.className = cls || '';
+const el = document.getElementById('message');
+el.textContent = text;
+el.className = cls || '';
 }
 
 async function handleForgotPassword() {
-  const email = document.getElementById('email').value.trim();
-  if (!email) {
-    setMessage('Enter your email above first, then click "Forgot password?"', 'error');
-    return;
-  }
-  setMessage('Sending reset link…', '');
-  try {
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
-    });
-    if (error) throw error;
-    setMessage('If that email has an account, a reset link has been sent.', 'success');
-  } catch (err) {
-    setMessage(err.message || 'Something went wrong.', 'error');
-  }
+const email = document.getElementById('email').value.trim();
+if (!email) {
+setMessage('Enter your email above first, then click "Forgot password?"', 'error');
+return;
+}
+setMessage('Sending reset link…', '');
+try {
+const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
+});
+if (error) throw error;
+setMessage('If that email has an account, a reset link has been sent.', 'success');
+} catch (err) {
+setMessage(err.message || 'Something went wrong.', 'error');
+}
 }
 
-// If already logged in, go straight to dashboard
 supabaseClient.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.href = 'dashboard.html';
+if (data.session) window.location.href = 'dashboard.html';
 });
 
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  setMessage('', '');
-
-  try {
-    if (mode === 'login') {
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      window.location.href = 'dashboard.html';
-    } else {
-      const { error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) throw error;
-      setMessage('Account created. Check your email to confirm, then log in.', 'success');
-      toggleMode();
-    }
-  } catch (err) {
-    setMessage(err.message || 'Something went wrong.', 'error');
-  } finally {
-    btn.disabled = false;
-  }
+e.preventDefault();
+const email = document.getElementById('email').value.trim();
+const password = document.getElementById('password').value;
+const btn = document.getElementById('submit-btn');
+btn.disabled = true;
+setMessage('', '');
+try {
+if (mode === 'login') {
+const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+if (error) throw error;
+window.location.href = 'dashboard.html';
+} else {
+const { error } = await supabaseClient.auth.signUp({ email, password });
+if (error) throw error;
+setMessage('Account created. Check your email to confirm, then log in.', 'success');
+toggleMode();
+}
+} catch (err) {
+setMessage(err.message || 'Something went wrong.', 'error');
+} finally {
+btn.disabled = false;
+}
 });
 </script>
-
 </body>
 </html>
