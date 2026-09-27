@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
     amount_paid: invoice.amount_paid / 100,
     currency: invoice.currency,
     status: invoice.status,
+    due_date: invoice.due_date ? new Date(invoice.due_date * 1000).toISOString() : null,
     period_start: invoice.period_start ? new Date(invoice.period_start * 1000).toISOString() : null,
     period_end: invoice.period_end ? new Date(invoice.period_end * 1000).toISOString() : null,
     hosted_invoice_url: invoice.hosted_invoice_url,

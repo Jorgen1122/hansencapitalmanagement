@@ -241,7 +241,7 @@ document.getElementById('payment-amount').textContent =
 `$${Number(data.amount_due).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
 const statusWrap = document.getElementById('payment-status-wrap');
-const isOverdue = data.status === 'open' && data.period_end && new Date(data.period_end) < new Date();
+const isOverdue = data.status === 'open' && data.due_date && new Date(data.due_date) < new Date();
 const badgeClass = data.status === 'paid' ? 'paid' : (isOverdue ? 'overdue' : 'open');
 const badgeText = data.status === 'paid' ? 'Paid' : (isOverdue ? 'Past Due' : 'Due');
 statusWrap.innerHTML = `<span class="badge ${badgeClass}">${badgeText}</span>`;
