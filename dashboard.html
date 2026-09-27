@@ -90,6 +90,7 @@ th { color: #D4AF37; font-weight: 600; }
 .kpi-grid { grid-template-columns: 1fr; }
 header { flex-direction: column; gap: 10px; padding: 1rem; }
 .branch-bar { text-align: center; padding: 0.5rem 1rem; }
+.doc-download-link { font-weight: 600; }
 }
 </style>
 </head>
@@ -152,7 +153,7 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div>
 <div class="doc-col-title">Documents We've Shared With You</div>
 <table id="firm-doc-table">
-<thead><tr><th>File</th><th>Category</th><th>Date</th></tr></thead>
+<thead><tr><th>File</th><th>Category</th><th>Date</th><th></th></tr></thead>
 <tbody id="firm-doc-rows"></tbody>
 </table>
 <p id="no-firm-docs" class="empty-note" style="display:none;">Nothing shared yet.</p>
@@ -360,8 +361,32 @@ if (firmDocs.length === 0) {
 document.getElementById('no-firm-docs').style.display = 'block';
 } else {
 firmRows.innerHTML = firmDocs.map(d => `
-<tr><td>${d.filename}</td><td><span class="category-tag">${d.category || 'Document'}</span></td><td>${new Date(d.uploaded_at).toLocaleDateString()}</td></tr>
+<tr>
+<td>${d.filename}</td>
+<td><span class="category-tag">${d.category || 'Document'}</span></td>
+<td>${new Date(d.uploaded_at).toLocaleDateString()}</td>
+<td><a href="#" class="doc-download-link" data-path="${d.storage_path}" data-name="${d.filename}">Download</a></td>
+</tr>
 `).join('');
+
+document.querySelectorAll('.doc-download-link').forEach(link => {
+link.addEventListener('click', async (e) => {
+e.preventDefault();
+const path = link.dataset.path;
+link.textContent = 'Loading…';
+const { data, error } = await supabaseClient.storage
+.from(DOCS_BUCKET)
+.createSignedUrl(path, 60); // link valid for 60 seconds
+if (error || !data) {
+link.textContent = 'Error — try again';
+console.error(error);
+return;
+}
+window.open(data.signedUrl, '_blank');
+link.textContent = 'Download';
+});
+});
+}
 }
 }
 
