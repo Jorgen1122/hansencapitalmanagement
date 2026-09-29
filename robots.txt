@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /supabase/
+
+Sitemap: https://www.hansencapitalmanagement.com/sitemap.xml
