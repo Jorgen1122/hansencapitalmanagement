@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google Analytics (public pages only; never on portal pages) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-W88KZQ73YL');
+// Lead events: phone/email clicks and completed Calendly bookings
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
+  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
+});
+window.addEventListener('message', function (e) {
+  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
+    gtag('event', 'generate_lead', { method: 'calendly' });
+  }
+});
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Small Business Bookkeeping, Cleanup &amp; Tax Prep | Lincoln &amp; Omaha</title>

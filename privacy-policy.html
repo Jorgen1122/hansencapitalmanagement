@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google Analytics (public pages only; never on portal pages) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-W88KZQ73YL');
+// Lead events: phone/email clicks and completed Calendly bookings
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
+  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
+});
+window.addEventListener('message', function (e) {
+  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
+    gtag('event', 'generate_lead', { method: 'calendly' });
+  }
+});
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy | Hansen Capital Management</title>
@@ -124,7 +142,7 @@ nav a { margin: 0 0.75rem; }
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="updated">Last updated: September 26, 2026</p>
+<p class="updated">Last updated: September 29, 2026</p>
 
 <p>
 Hansen Capital Management LLC ("we," "us," "our") respects your privacy.
@@ -179,6 +197,7 @@ your separate, signed written consent, as required by law.
 <tr><td>Supabase</td><td>Client portal authentication, database, and secure document storage</td></tr>
 <tr><td>Calendly</td><td>Consultation scheduling. See <a href="https://calendly.com/privacy" target="_blank" rel="noopener">Calendly's Privacy Policy</a>.</td></tr>
 <tr><td>GitHub Pages</td><td>Website hosting</td></tr>
+<tr><td>Google Analytics</td><td>Aggregate website traffic measurement on our public pages. Not used on client portal pages. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</td></tr>
 </table>
 
 <h2>5. Data Security</h2>
@@ -207,9 +226,16 @@ processing. To make a request, contact us using the information in Section
 
 <h2>8. Cookies &amp; Tracking</h2>
 <p>
-Our website itself does not use tracking cookies for advertising. Our
-embedded scheduling tool (Calendly) may set its own cookies to operate the
-booking widget, governed by its own privacy policy linked above.
+Our public web pages use Google Analytics, which sets cookies to measure
+aggregate traffic, such as pages visited, referring sites, general location,
+and whether a visitor booked a consultation or clicked to call or email us.
+We do not use these cookies for advertising, and Google Analytics does not run
+on client portal pages (login, dashboard, and password reset), so no portal or
+financial data is sent to Google. You can opt out with Google's browser add-on at
+<a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">tools.google.com/dlpage/gaoptout</a>
+or by blocking cookies in your browser. Our embedded scheduling tool (Calendly)
+may set its own cookies to operate the booking widget, governed by its own
+privacy policy linked above.
 </p>
 
 <h2>9. Children's Privacy</h2>
