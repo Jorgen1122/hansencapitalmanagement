@@ -52,7 +52,7 @@ background: #D4AF37; color: #030D1D; font-weight: 600; padding: 10px 22px;
 border: none; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block;
 }
 
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin: 30px 0 40px 0; }
+.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin: 30px 0 40px 0; }
 .kpi-card { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 20px; text-align: left; }
 .kpi-card .label { color: #E8E0C5; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
 .kpi-card .value { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: #D4AF37; margin-top: 6px; }
@@ -317,6 +317,7 @@ const fmtPct = (n) => n == null ? '—' : `${(Number(n) * 100).toFixed(1)}%`;
 const cards = [
 ['Cash Balance', fmt(latest.cash), ''],
 ['Revenue (MTD)', fmt(latest.revenue_mtd), `YTD ${fmt(latest.ytd_revenue)}`],
+['Expenses (MTD)', fmt(latest.expenses_mtd), `YTD ${fmt(latest.ytd_expenses)}`],
 ['Net Income (MTD)', fmt(latest.net_income_mtd), `YTD ${fmt(latest.ytd_net_income)}`],
 ['Gross Margin', fmtPct(latest.gross_margin), `YTD ${fmtPct(latest.ytd_gross_margin)}`],
 ];
@@ -365,6 +366,9 @@ const rows = kpiHistory.slice(-CHART_MONTHS);
 if (rows.length < 1) return;
 const isPct = RATIO_METRICS.includes(metric);
 const isYtd = view === 'ytd' && metric !== 'cash';
+// Monthly view: everything is a bar chart.
+// Year-to-Date view: running totals and cash are lines; the two margins stay bars.
+const useLine = view === 'ytd' && !RATIO_METRICS.includes(metric);
 const labels = rows.map(row => fmtDate(row.period_end, { month: 'short', year: '2-digit' }));
 const values = rows.map(row => {
 const v = chartValue(row, metric, view);
@@ -372,10 +376,10 @@ return v == null ? null : (isPct ? Number(v) * 100 : Number(v));
 });
 
 const note = document.getElementById('chart-note');
-if (metric === 'cash') note.textContent = 'Cash is a balance at each month-end, so it is the same in both views.';
+if (metric === 'cash') note.textContent = 'Cash is a balance at each month-end, so it does not add up across months; the two views show the same values.';
 else if (view === 'monthly') note.textContent = 'Each bar is one month.';
 else if (isPct) note.textContent = 'Year-to-date margin = running profit ÷ running revenue since January. Margins are recalculated, never added together.';
-else note.textContent = 'Each bar adds that month to the months before it, restarting every January.';
+else note.textContent = 'Each point adds that month to the months before it, restarting every January.';
 
 const fmtAxis = (v) => isPct ? `${Number(v).toFixed(0)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString()}`;
 const fmtTip = (v) => isPct ? `${Number(v).toFixed(1)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -385,19 +389,26 @@ const barColors = values.map(v => (v != null && v < 0) ? '#C0504D' : '#D4AF37');
 
 if (trendChart) trendChart.destroy();
 const ctx = document.getElementById('trend-chart').getContext('2d');
-trendChart = new Chart(ctx, {
-type: 'bar',
-data: {
-labels,
-datasets: [{
+const dataset = useLine ? {
+label,
+data: values,
+borderColor: '#D4AF37',
+backgroundColor: 'rgba(212, 175, 55, 0.1)',
+tension: 0.25,
+fill: true,
+pointBackgroundColor: '#D4AF37',
+pointRadius: 4,
+} : {
 label,
 data: values,
 backgroundColor: barColors,
 borderColor: barColors,
 borderWidth: 1,
 maxBarThickness: 56,
-}]
-},
+};
+trendChart = new Chart(ctx, {
+type: useLine ? 'line' : 'bar',
+data: { labels, datasets: [dataset] },
 options: {
 responsive: true,
 plugins: {
@@ -405,7 +416,7 @@ legend: { display: false },
 tooltip: { callbacks: { label: (c) => `${label}: ${fmtTip(c.parsed.y)}` } }
 },
 scales: {
-x: { ticks: { color: '#E8E0C5' }, grid: { display: false } },
+x: { ticks: { color: '#E8E0C5' }, grid: useLine ? { color: 'rgba(212,175,55,0.08)' } : { display: false } },
 y: {
 ticks: { color: '#E8E0C5', callback: fmtAxis },
 grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(232,224,197,0.55)' : 'rgba(212,175,55,0.08)' }
