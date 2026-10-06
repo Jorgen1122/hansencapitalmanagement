@@ -66,6 +66,14 @@ background: none; border: 1px solid rgba(212, 175, 55, 0.35); color: #D4AF37;
 padding: 6px 16px; font-size: 0.82rem; cursor: pointer;
 }
 .chart-tab.active { background: rgba(212, 175, 55, 0.15); }
+.view-tab {
+background: none; border: 1px solid rgba(212, 175, 55, 0.35); color: #D4AF37;
+padding: 6px 16px; font-size: 0.82rem; cursor: pointer;
+}
+.view-tab.active { background: #D4AF37; color: #030D1D; font-weight: 600; }
+.view-tabs { margin-bottom: 10px; }
+.chart-note { color: #8FA0C4; font-size: 0.82rem; margin-top: 12px; text-align: left; }
+.kpi-card .sub { color: #8FA0C4; font-size: 0.78rem; margin-top: 6px; }
 canvas { max-height: 320px; }
 
 .doc-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; }
@@ -136,13 +144,20 @@ first month's books are closed.
 <!-- TREND CHARTS -->
 <h2 class="section-title">Trends</h2>
 <div class="chart-box">
+<div class="chart-tabs view-tabs">
+<button class="view-tab active" data-view="monthly">Monthly</button>
+<button class="view-tab" data-view="ytd">Year-to-Date</button>
+</div>
 <div class="chart-tabs">
 <button class="chart-tab active" data-metric="net_income_mtd">Net Income</button>
 <button class="chart-tab" data-metric="revenue_mtd">Revenue</button>
+<button class="chart-tab" data-metric="expenses_mtd">Expenses</button>
 <button class="chart-tab" data-metric="gross_margin">Gross Margin</button>
+<button class="chart-tab" data-metric="net_margin">Net Margin</button>
 <button class="chart-tab" data-metric="cash">Cash Position</button>
 </div>
 <canvas id="trend-chart"></canvas>
+<div id="chart-note" class="chart-note"></div>
 <div id="no-history" class="empty-note" style="display:none;">
 Not enough history yet to chart a trend — this fills in as more months close.
 </div>
@@ -187,13 +202,24 @@ let currentUser = null;
 let currentClient = null;
 let kpiHistory = [];
 let trendChart = null;
+let chartMetric = 'net_income_mtd';
+let chartView = 'monthly';
+const CHART_MONTHS = 13; // bars shown: current + trailing 12
 
 const METRIC_LABELS = {
 net_income_mtd: 'Net Income',
 revenue_mtd: 'Revenue',
+expenses_mtd: 'Expenses',
 gross_margin: 'Gross Margin',
+net_margin: 'Net Margin',
 cash: 'Cash Position',
 };
+// Flows add up across months. Ratios are recomputed from running totals. Balances never add.
+const FLOW_METRICS = ['net_income_mtd', 'revenue_mtd', 'expenses_mtd'];
+const RATIO_METRICS = ['gross_margin', 'net_margin'];
+
+// period_end is a plain date (YYYY-MM-DD); format it in UTC so it never slips back a day
+const fmtDate = (d, opts) => new Date(d).toLocaleDateString('en-US', Object.assign({ timeZone: 'UTC' }, opts));
 
 async function init() {
 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -222,7 +248,16 @@ document.querySelectorAll('.chart-tab').forEach(tab => {
 tab.addEventListener('click', () => {
 document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
 tab.classList.add('active');
-renderChart(tab.dataset.metric);
+chartMetric = tab.dataset.metric;
+renderChart();
+});
+});
+document.querySelectorAll('.view-tab').forEach(tab => {
+tab.addEventListener('click', () => {
+document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+tab.classList.add('active');
+chartView = tab.dataset.view;
+renderChart();
 });
 });
 }
@@ -261,7 +296,7 @@ const { data, error } = await supabaseClient
 .select('*')
 .eq('client_id', currentClient.id)
 .order('period_end', { ascending: false })
-.limit(13); // current + trailing 12
+.limit(36); // enough history to compute year-to-date totals correctly
 
 if (error || !data || data.length === 0) {
 document.getElementById('no-kpi').style.display = 'block';
@@ -270,66 +305,110 @@ return;
 }
 
 kpiHistory = data.reverse(); // chronological order for charting
+addRunningTotals(kpiHistory);
 const latest = kpiHistory[kpiHistory.length - 1];
 
 document.getElementById('period-label').textContent =
-`As of ${new Date(latest.period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+`As of ${fmtDate(latest.period_end, { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
-const fmt = (n) => n == null ? '—' : `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt = (n) => n == null ? '—' : `${Number(n) < 0 ? '-' : ''}$${Math.abs(Number(n)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtPct = (n) => n == null ? '—' : `${(Number(n) * 100).toFixed(1)}%`;
 
 const cards = [
-['Cash Balance', fmt(latest.cash)],
-['Revenue (MTD)', fmt(latest.revenue_mtd)],
-['Net Income (MTD)', fmt(latest.net_income_mtd)],
-['Gross Margin', fmtPct(latest.gross_margin)],
+['Cash Balance', fmt(latest.cash), ''],
+['Revenue (MTD)', fmt(latest.revenue_mtd), `YTD ${fmt(latest.ytd_revenue)}`],
+['Net Income (MTD)', fmt(latest.net_income_mtd), `YTD ${fmt(latest.ytd_net_income)}`],
+['Gross Margin', fmtPct(latest.gross_margin), `YTD ${fmtPct(latest.ytd_gross_margin)}`],
 ];
-document.getElementById('kpi-grid').innerHTML = cards.map(([label, value]) => `
-<div class="kpi-card"><div class="label">${label}</div><div class="value">${value}</div></div>
+document.getElementById('kpi-grid').innerHTML = cards.map(([label, value, sub]) => `
+<div class="kpi-card"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
 `).join('');
 
-if (kpiHistory.length < 2) {
-document.getElementById('no-history').style.display = 'block';
-} else {
-renderChart('net_income_mtd');
-}
+renderChart();
 }
 
-function renderChart(metric) {
-if (kpiHistory.length < 2) return;
-const labels = kpiHistory.map(row =>
-new Date(row.period_end).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-);
-const isPct = metric === 'gross_margin';
-const values = kpiHistory.map(row => isPct ? (row[metric] != null ? row[metric] * 100 : null) : row[metric]);
+// Running totals that restart every January. Flows (revenue, expenses, net income) simply add.
+// Margins are NOT added: they are rebuilt from the running totals (profit / revenue).
+// Cash is a balance, so it has no running total.
+function addRunningTotals(rows) {
+let year = null, rev = 0, exp = 0, ni = 0, gp = 0;
+rows.forEach(row => {
+const y = new Date(row.period_end).getUTCFullYear();
+if (y !== year) { year = y; rev = 0; exp = 0; ni = 0; gp = 0; }
+const r = Number(row.revenue_mtd) || 0;
+rev += r;
+exp += Number(row.expenses_mtd) || 0;
+ni += Number(row.net_income_mtd) || 0;
+gp += (Number(row.gross_margin) || 0) * r; // gross profit for the month = margin x revenue
+row.ytd_revenue = rev;
+row.ytd_expenses = exp;
+row.ytd_net_income = ni;
+row.ytd_gross_margin = rev ? gp / rev : null;
+row.ytd_net_margin = rev ? ni / rev : null;
+});
+}
+
+function chartValue(row, metric, view) {
+if (view === 'ytd') {
+if (metric === 'net_income_mtd') return row.ytd_net_income;
+if (metric === 'revenue_mtd') return row.ytd_revenue;
+if (metric === 'expenses_mtd') return row.ytd_expenses;
+if (metric === 'gross_margin') return row.ytd_gross_margin;
+if (metric === 'net_margin') return row.ytd_net_margin;
+}
+return row[metric]; // monthly view, and cash (a balance) in both views
+}
+
+function renderChart() {
+const metric = chartMetric, view = chartView;
+const rows = kpiHistory.slice(-CHART_MONTHS);
+if (rows.length < 1) return;
+const isPct = RATIO_METRICS.includes(metric);
+const isYtd = view === 'ytd' && metric !== 'cash';
+const labels = rows.map(row => fmtDate(row.period_end, { month: 'short', year: '2-digit' }));
+const values = rows.map(row => {
+const v = chartValue(row, metric, view);
+return v == null ? null : (isPct ? Number(v) * 100 : Number(v));
+});
+
+const note = document.getElementById('chart-note');
+if (metric === 'cash') note.textContent = 'Cash is a balance at each month-end, so it is the same in both views.';
+else if (view === 'monthly') note.textContent = 'Each bar is one month.';
+else if (isPct) note.textContent = 'Year-to-date margin = running profit ÷ running revenue since January. Margins are recalculated, never added together.';
+else note.textContent = 'Each bar adds that month to the months before it, restarting every January.';
+
+const fmtAxis = (v) => isPct ? `${Number(v).toFixed(0)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString()}`;
+const fmtTip = (v) => isPct ? `${Number(v).toFixed(1)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const label = (isYtd ? 'YTD ' : '') + METRIC_LABELS[metric];
+// expenses are a cost, so show them in gold like the others; only negative values turn red
+const barColors = values.map(v => (v != null && v < 0) ? '#C0504D' : '#D4AF37');
 
 if (trendChart) trendChart.destroy();
 const ctx = document.getElementById('trend-chart').getContext('2d');
 trendChart = new Chart(ctx, {
-type: 'line',
+type: 'bar',
 data: {
 labels,
 datasets: [{
-label: METRIC_LABELS[metric],
+label,
 data: values,
-borderColor: '#D4AF37',
-backgroundColor: 'rgba(212, 175, 55, 0.1)',
-tension: 0.25,
-fill: true,
-pointBackgroundColor: '#D4AF37',
+backgroundColor: barColors,
+borderColor: barColors,
+borderWidth: 1,
+maxBarThickness: 56,
 }]
 },
 options: {
 responsive: true,
-plugins: { legend: { display: false } },
-scales: {
-x: { ticks: { color: '#E8E0C5' }, grid: { color: 'rgba(212,175,55,0.08)' } },
-y: {
-ticks: {
-color: '#E8E0C5',
-callback: (v) => isPct ? `${v}%` : `$${Number(v).toLocaleString()}`
+plugins: {
+legend: { display: false },
+tooltip: { callbacks: { label: (c) => `${label}: ${fmtTip(c.parsed.y)}` } }
 },
-grid: { color: 'rgba(212,175,55,0.08)' }
+scales: {
+x: { ticks: { color: '#E8E0C5' }, grid: { display: false } },
+y: {
+ticks: { color: '#E8E0C5', callback: fmtAxis },
+grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(232,224,197,0.55)' : 'rgba(212,175,55,0.08)' }
 }
 }
 }
