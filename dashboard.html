@@ -5,8 +5,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Dashboard | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="bitlogo.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 body {
@@ -102,6 +107,7 @@ header { flex-direction: column; gap: 10px; padding: 1rem; }
 .doc-download-link { font-weight: 600; }
 }
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 
@@ -118,7 +124,7 @@ header { flex-direction: column; gap: 10px; padding: 1rem; }
 </header>
 
 <main>
-<div id="loading">Loading your dashboard…</div>
+<div id="loading" role="status"><span class="spinner" aria-hidden="true"></span>Loading your dashboard…</div>
 
 <div id="dashboard-content" style="display:none;">
 <h1 id="client-name">Welcome</h1>
@@ -135,7 +141,7 @@ header { flex-direction: column; gap: 10px; padding: 1rem; }
 </div>
 
 <!-- CURRENT KPIs -->
-<div class="kpi-grid" id="kpi-grid"></div>
+<div class="kpi-grid" id="kpi-grid"><div class="empty-note" role="status"><span class="spinner" aria-hidden="true"></span>Loading your figures…</div></div>
 <div id="no-kpi" class="empty-note" style="display:none;">
 No KPI data has been posted yet. Your numbers will appear here once your
 first month's books are closed.
@@ -170,7 +176,7 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div class="doc-col-title">Documents We've Shared With You</div>
 <table id="firm-doc-table">
 <thead><tr><th>File</th><th>Category</th><th>Date</th><th></th></tr></thead>
-<tbody id="firm-doc-rows"></tbody>
+<tbody id="firm-doc-rows"><tr><td colspan="4" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
 </table>
 <p id="no-firm-docs" class="empty-note" style="display:none;">Nothing shared yet.</p>
 </div>
@@ -183,7 +189,7 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 <table id="client-doc-table">
 <thead><tr><th>File</th><th>Uploaded</th><th>Status</th></tr></thead>
-<tbody id="client-doc-rows"></tbody>
+<tbody id="client-doc-rows"><tr><td colspan="3" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
 </table>
 <p id="no-client-docs" class="empty-note" style="display:none;">No documents uploaded yet.</p>
 </div>
@@ -191,6 +197,9 @@ Not enough history yet to chart a trend — this fills in as more months close.
 
 </div>
 </main>
+<footer>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a></p>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -299,6 +308,7 @@ const { data, error } = await supabaseClient
 .limit(36); // enough history to compute year-to-date totals correctly
 
 if (error || !data || data.length === 0) {
+document.getElementById('kpi-grid').innerHTML = '';
 document.getElementById('no-kpi').style.display = 'block';
 document.getElementById('no-history').style.display = 'block';
 return;
@@ -433,7 +443,13 @@ const { data, error } = await supabaseClient
 .eq('client_id', currentClient.id)
 .order('uploaded_at', { ascending: false });
 
-if (error || !data) return;
+document.getElementById('client-doc-rows').innerHTML = '';
+document.getElementById('firm-doc-rows').innerHTML = '';
+if (error || !data) {
+document.getElementById('no-client-docs').textContent = 'We couldn\u2019t load your documents. Refresh the page to try again.';
+document.getElementById('no-client-docs').style.display = 'block';
+return;
+}
 
 const clientDocs = data.filter(d => d.direction !== 'firm_deliverable');
 const firmDocs = data.filter(d => d.direction === 'firm_deliverable');
@@ -519,9 +535,13 @@ const btn = document.getElementById('upload-btn');
 btn.disabled = true;
 statusEl.textContent = 'Uploading…';
 statusEl.className = '';
+btn.setAttribute('aria-busy', 'true');
 
 try {
+let uploadIndex = 0;
 for (const file of files) {
+uploadIndex += 1;
+statusEl.textContent = files.length > 1 ? `Uploading ${uploadIndex} of ${files.length}…` : 'Uploading…';
 const safeName = sanitizeFilename(file.name);
 const path = `${currentClient.id}/${Date.now()}_${safeName}`;
 const { error: uploadErr } = await supabaseClient.storage.from(DOCS_BUCKET).upload(path, file);
@@ -545,10 +565,14 @@ statusEl.textContent = err.message || 'Upload failed.';
 statusEl.className = 'error';
 } finally {
 btn.disabled = false;
+btn.removeAttribute('aria-busy');
 }
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
+const lb = document.getElementById('logout-btn');
+lb.disabled = true;
+lb.textContent = 'Signing out…';
 await supabaseClient.auth.signOut();
 window.location.href = 'login.html';
 });

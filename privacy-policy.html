@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google Analytics (public pages only; never on portal pages) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-W88KZQ73YL');
-// Lead events: phone/email clicks and completed Calendly bookings
-document.addEventListener('click', function (e) {
-  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
-  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
-});
-window.addEventListener('message', function (e) {
-  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
-    gtag('event', 'generate_lead', { method: 'calendly' });
-  }
-});
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="description" content="How Hansen Capital Management LLC collects, uses, and protects information from website visitors, bookkeeping and tax clients, and portal users.">
 <link rel="canonical" href="https://www.hansencapitalmanagement.com/privacy-policy.html">
 <meta property="og:type" content="website">
@@ -29,9 +17,11 @@ window.addEventListener('message', function (e) {
 <meta property="og:title" content="Privacy Policy | Hansen Capital Management">
 <meta property="og:description" content="How Hansen Capital Management LLC collects, uses, and protects information from website visitors, bookkeeping and tax clients, and portal users.">
 <meta property="og:url" content="https://www.hansencapitalmanagement.com/privacy-policy.html">
-<meta property="og:image" content="https://www.hansencapitalmanagement.com/logo.png">
-<meta name="twitter:card" content="summary">
-<link rel="icon" type="image/png" href="bitlogo.png">
+<meta property="og:image" content="https://www.hansencapitalmanagement.com/og-financial-services.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Hansen Capital Management - Bookkeeping, Tax and Financial Analytics, Lincoln and Omaha">
+<meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 body {
@@ -123,6 +113,8 @@ nav a { margin: 0 0.75rem; }
 .branch-bar { text-align: center; padding: 0.5rem 1rem; }
 }
 </style>
+<link rel="stylesheet" href="site.css">
+<script src="consent.js" defer></script>
 </head>
 <body>
 
@@ -142,7 +134,7 @@ nav a { margin: 0 0.75rem; }
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="updated">Last updated: September 29, 2026</p>
+<p class="updated">Last updated: October 19, 2026</p>
 
 <p>
 Hansen Capital Management LLC ("we," "us," "our") respects your privacy.
@@ -224,10 +216,14 @@ processing. To make a request, contact us using the information in Section
 10. We will respond consistent with applicable law.
 </p>
 
-<h2>8. Cookies &amp; Tracking</h2>
+<h2 id="cookies">8. Cookies &amp; Tracking</h2>
 <p>
-Our public web pages use Google Analytics, which sets cookies to measure
-aggregate traffic, such as pages visited, referring sites, general location,
+Our public web pages use Google Analytics only if you choose "Accept" in the
+cookie banner. Until you accept, Google Analytics is not loaded and sets no
+cookies; if you decline, or your browser sends a Global Privacy Control signal,
+it stays off. Your choice is saved in your browser, and you can change it at any
+time with the "Cookie Settings" link at the bottom of every page. When enabled,
+Google Analytics sets cookies to measure aggregate traffic, such as pages visited, referring sites, general location,
 and whether a visitor booked a consultation or clicked to call or email us.
 We do not use these cookies for advertising, and Google Analytics does not run
 on client portal pages (login, dashboard, and password reset), so no portal or
@@ -266,6 +262,7 @@ policy.
 Bookkeeping, tax, and analytics services are offered separately from investment
 management activities and do not constitute investment advice.
 </p>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
 </footer>
 
 </body>

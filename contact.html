@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google Analytics (public pages only; never on portal pages) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-W88KZQ73YL');
-// Lead events: phone/email clicks and completed Calendly bookings
-document.addEventListener('click', function (e) {
-  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
-  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
-});
-window.addEventListener('message', function (e) {
-  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
-    gtag('event', 'generate_lead', { method: 'calendly' });
-  }
-});
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Firm Contact | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="description" content="General contact information for Hansen Capital Management LLC in Lincoln, Nebraska.">
 <link rel="canonical" href="https://www.hansencapitalmanagement.com/contact.html">
 <meta property="og:type" content="website">
@@ -29,11 +17,13 @@ window.addEventListener('message', function (e) {
 <meta property="og:title" content="Firm Contact | Hansen Capital Management">
 <meta property="og:description" content="General contact information for Hansen Capital Management LLC in Lincoln, Nebraska.">
 <meta property="og:url" content="https://www.hansencapitalmanagement.com/contact.html">
-<meta property="og:image" content="https://www.hansencapitalmanagement.com/logo.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.hansencapitalmanagement.com/og-firm.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Hansen Capital Management - Quantitative Research, Risk Discipline, Systematic Execution">
+<meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" type="image/png" href="bitlogo.png"> 
-<link rel="apple-touch-icon" href="bitlogo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 
@@ -220,6 +210,8 @@ footer p {
     }
 }
 </style>
+<link rel="stylesheet" href="site.css">
+<script src="consent.js" defer></script>
 </head>
 
 <body>
@@ -231,8 +223,8 @@ footer p {
         <a href="about.html">About</a>
         <a href="approach.html">Approach</a>
         <a href="risk.html">Risk</a>
-        <a href="financial-services.html" class="active">Financial Services</a>
-        <a href="contact.html">Contact</a>
+        <a href="financial-services.html">Financial Services</a>
+        <a href="contact.html" class="active">Contact</a>
     </nav>
 </header>
 
@@ -266,19 +258,73 @@ footer p {
 
         <h2>Send a Message</h2>
 
-        <form action="https://formspree.io/f/mjkalavz" method="POST">
+        <form id="contact-form" action="https://formspree.io/f/mjkalavz" method="POST" novalidate>
 
-            <input type="text" name="name" placeholder="Your Name" required>
+            <input type="text" id="cf-name" name="name" placeholder="Your Name" aria-label="Your name" autocomplete="name" required aria-describedby="cf-name-error">
+            <span class="field-error" id="cf-name-error"></span>
 
-            <input type="email" name="email" placeholder="Your Email" required>
+            <input type="email" id="cf-email" name="email" placeholder="Your Email" aria-label="Your email" autocomplete="email" required aria-describedby="cf-email-error">
+            <span class="field-error" id="cf-email-error"></span>
 
-            <input type="text" name="phone" placeholder="Phone Number">
+            <input type="tel" id="cf-phone" name="phone" placeholder="Phone Number (optional)" aria-label="Phone number (optional)" autocomplete="tel" aria-describedby="cf-phone-error">
+            <span class="field-error" id="cf-phone-error"></span>
 
-            <textarea name="message" rows="6" placeholder="Your Message" required></textarea>
+            <textarea id="cf-message" name="message" rows="6" placeholder="Your Message" aria-label="Your message" required aria-describedby="cf-message-error"></textarea>
+            <span class="field-error" id="cf-message-error"></span>
 
-            <input type="submit" value="Send Message">
+            <!-- spam trap: real visitors never see or fill this -->
+            <input type="text" name="_gotcha" class="honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <input type="submit" id="cf-submit" value="Send Message">
+            <div id="cf-alert" class="form-alert" role="alert" aria-live="polite"></div>
 
         </form>
+        <script>
+        (function () {
+          var form = document.getElementById('contact-form');
+          var btn = document.getElementById('cf-submit');
+          var alertEl = document.getElementById('cf-alert');
+          function err(id, msg) {
+            var input = document.getElementById(id), el = document.getElementById(id + '-error');
+            if (msg) { input.setAttribute('aria-invalid', 'true'); el.textContent = msg; }
+            else { input.removeAttribute('aria-invalid'); el.textContent = ''; }
+            return !!msg;
+          }
+          ['cf-name', 'cf-email', 'cf-phone', 'cf-message'].forEach(function (id) {
+            document.getElementById(id).addEventListener('input', function () { err(id, ''); });
+          });
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            alertEl.textContent = ''; alertEl.className = 'form-alert';
+            var v = function (id) { return document.getElementById(id).value.trim(); };
+            var name = v('cf-name'), email = v('cf-email'), phone = v('cf-phone'), msg = v('cf-message');
+            var bad = false;
+            bad = err('cf-name', name ? '' : 'Please enter your name.') || bad;
+            bad = err('cf-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Please enter a valid email address.') || bad;
+            bad = err('cf-phone', (!phone || phone.replace(/\D/g, '').length >= 10) ? '' : 'Please enter a full phone number, or leave it blank.') || bad;
+            bad = err('cf-message', msg.length >= 10 ? '' : 'Please include a short message (at least 10 characters).') || bad;
+            if (bad) { form.querySelector('[aria-invalid="true"]').focus(); return; }
+
+            btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.value = 'Sending\u2026';
+            fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+              .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+              .then(function (res) {
+                if (!res.ok) {
+                  var m = (res.d && res.d.errors && res.d.errors.map(function (x) { return x.message; }).join(' ')) || 'Your message could not be sent.';
+                  throw new Error(m);
+                }
+                if (window.hcmTrack) window.hcmTrack('generate_lead', { method: 'contact_form' });
+                window.location.href = 'thank-you.html';
+              })
+              .catch(function (ex) {
+                alertEl.className = 'form-alert error';
+                alertEl.textContent = (ex && ex.message && ex.message !== 'Failed to fetch' ? ex.message + ' ' : 'We couldn\u2019t send your message. ') +
+                  'Please try again, or email general@hansencapitalmanagement.com.';
+                btn.disabled = false; btn.removeAttribute('aria-busy'); btn.value = 'Send Message';
+              });
+          });
+        })();
+        </script>
 
         <p class="contact-note">
             Communications submitted through this website are for general
@@ -307,6 +353,7 @@ footer p {
     <p>
         PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
     </p>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
 </footer>
 
 </body>

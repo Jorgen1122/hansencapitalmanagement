@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google Analytics (public pages only; never on portal pages) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-W88KZQ73YL');
-// Lead events: phone/email clicks and completed Calendly bookings
-document.addEventListener('click', function (e) {
-  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
-  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
-});
-window.addEventListener('message', function (e) {
-  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
-    gtag('event', 'generate_lead', { method: 'calendly' });
-  }
-});
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bookkeeping &amp; Tax Services in Lincoln, NE | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="description" content="Monthly bookkeeping, catch-up cleanup, and tax preparation for small businesses in Lincoln and Omaha, NE, with forecasting and margin analysis included.">
 <link rel="canonical" href="https://www.hansencapitalmanagement.com/financial-services.html">
 <meta property="og:type" content="website">
@@ -29,8 +17,11 @@ window.addEventListener('message', function (e) {
 <meta property="og:title" content="Bookkeeping &amp; Tax Services in Lincoln, NE | Hansen Capital Management">
 <meta property="og:description" content="Monthly bookkeeping, catch-up cleanup, and tax preparation for small businesses in Lincoln and Omaha, NE, with forecasting and margin analysis included.">
 <meta property="og:url" content="https://www.hansencapitalmanagement.com/financial-services.html">
-<meta property="og:image" content="https://www.hansencapitalmanagement.com/logo.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.hansencapitalmanagement.com/og-financial-services.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Hansen Capital Management - Bookkeeping, Tax and Financial Analytics, Lincoln and Omaha">
+<meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -114,8 +105,6 @@ window.addEventListener('message', function (e) {
   }
 }
 </script>
-<link rel="icon" type="image/png" href="bitlogo.png">
-<link rel="apple-touch-icon" href="bitlogo.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 body {
@@ -308,8 +297,10 @@ nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
 .branch-bar { text-align: center; padding: 0.5rem 1rem; }
 }
 </style>
+<link rel="stylesheet" href="site.css">
+<script src="consent.js" defer></script>
 </head>
-<body>
+<body class="branch-page has-mobile-cta">
 
 <div class="branch-bar">
 <a href="index.html">&larr; Hansen Capital Management</a>
@@ -337,7 +328,7 @@ and margin analysis built in, not sold as an upgrade.
 </p>
 <p>Based in Lincoln, Nebraska. Serving Lincoln and Omaha in person, and online businesses nationwide.</p>
 <div class="hero-cta">
-<a href="contact2.html" class="btn">Get Started</a>
+<a href="contact2.html" class="btn">Book an Intro Call</a>
 <a href="services.html" class="btn-outline">View Services</a>
 </div>
 </section>
@@ -407,6 +398,11 @@ annualized gross profit being lost."
 
 </main>
 
+<nav class="mobile-cta" aria-label="Quick contact">
+<a href="contact2.html" class="mcta-primary">Book an Intro Call</a>
+<a href="tel:+15312079631" class="mcta-secondary">Call</a>
+</nav>
+
 <footer>
 <p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
 <p>
@@ -415,7 +411,7 @@ management activities and do not constitute investment advice.
 </p>
 <p>Hansen Capital Management LLC &middot; Lincoln, Nebraska &middot; <a href="tel:+15312079631">(531) 207-9631</a> &middot; <a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a></p>
 <p>Serving Lincoln and Omaha, NE &mdash; and online businesses nationwide.</p>
-<p><a href="privacy-policy.html">Privacy Policy</a></p>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
 </footer>
 
 </body>

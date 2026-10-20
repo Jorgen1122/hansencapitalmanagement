@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google Analytics (public pages only; never on portal pages) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-W88KZQ73YL"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-W88KZQ73YL');
-// Lead events: phone/email clicks and completed Calendly bookings
-document.addEventListener('click', function (e) {
-  var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="mailto:"]');
-  if (a) gtag('event', a.href.indexOf('tel:') === 0 ? 'phone_click' : 'email_click', { link_url: a.href });
-});
-window.addEventListener('message', function (e) {
-  if (e.origin === 'https://calendly.com' && e.data && e.data.event === 'calendly.event_scheduled') {
-    gtag('event', 'generate_lead', { method: 'calendly' });
-  }
-});
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Investment Approach | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="description" content="How Hansen Capital Management approaches research: quantitative analysis, systematic decision-making, and continuous process improvement.">
 <link rel="canonical" href="https://www.hansencapitalmanagement.com/approach.html">
 <meta property="og:type" content="website">
@@ -29,11 +17,13 @@ window.addEventListener('message', function (e) {
 <meta property="og:title" content="Investment Approach | Hansen Capital Management">
 <meta property="og:description" content="How Hansen Capital Management approaches research: quantitative analysis, systematic decision-making, and continuous process improvement.">
 <meta property="og:url" content="https://www.hansencapitalmanagement.com/approach.html">
-<meta property="og:image" content="https://www.hansencapitalmanagement.com/logo.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.hansencapitalmanagement.com/og-firm.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Hansen Capital Management - Quantitative Research, Risk Discipline, Systematic Execution">
+<meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" type="image/png" href="bitlogo.png"> 
-<link rel="apple-touch-icon" href="bitlogo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 
@@ -210,6 +200,8 @@ footer p {
     }
 }
 </style>
+<link rel="stylesheet" href="site.css">
+<script src="consent.js" defer></script>
 </head>
 
 <body>
@@ -219,9 +211,9 @@ footer p {
     <nav>
         <a href="index.html">Home</a>
         <a href="about.html">About</a>
-        <a href="approach.html">Approach</a>
+        <a href="approach.html" class="active">Approach</a>
         <a href="risk.html">Risk</a>
-        <a href="financial-services.html" class="active">Financial Services</a>
+        <a href="financial-services.html">Financial Services</a>
         <a href="contact.html">Contact</a>
     </nav>
 </header>
@@ -348,6 +340,7 @@ footer p {
     <p>
         PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
     </p>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
 </footer>
 
 </body>

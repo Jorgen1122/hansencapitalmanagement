@@ -1,0 +1,80 @@
+/* Shared styles: cookie banner, sticky mobile CTA, loading and error states.
+   Each page keeps its own inline styles; this file only adds shared pieces. */
+
+/* ---------- Cookie banner ---------- */
+.cookie-banner {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 3000;
+  max-width: 760px; margin: 0 auto;
+  background: #071428; border: 1px solid rgba(212, 175, 55, 0.5);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  padding: 16px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  text-align: left; font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+.cookie-banner p { margin: 0; flex: 1 1 320px; color: #E8E0C5; font-size: 0.85rem; line-height: 1.5; }
+.cookie-banner a { color: #D4AF37; text-decoration: underline; }
+.cookie-actions { display: flex; gap: 10px; }
+/* Both buttons look the same on purpose: declining is as easy as accepting. */
+.cookie-btn {
+  background: transparent; color: #D4AF37; border: 1px solid #D4AF37;
+  padding: 9px 22px; font-size: 0.85rem; font-weight: 600; cursor: pointer; letter-spacing: 0.3px;
+}
+.cookie-btn:hover, .cookie-btn:focus-visible { background: rgba(212, 175, 55, 0.15); outline: none; }
+
+/* ---------- Footer legal links ---------- */
+.legal-links a { color: #D4AF37; margin: 0 6px; }
+
+/* ---------- Sticky mobile CTA (Financial Services pages) ---------- */
+.mobile-cta { display: none; }
+@media (max-width: 768px) {
+  .mobile-cta {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000;
+    background: #071428; border-top: 1px solid rgba(212, 175, 55, 0.35);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 10px;
+  }
+  .mobile-cta a {
+    flex: 1; text-align: center; padding: 12px 8px; font-weight: 600; font-size: 0.95rem;
+    text-decoration: none; letter-spacing: 0.3px; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .mobile-cta .mcta-primary { background: #D4AF37; color: #030D1D; flex: 2; }
+  .mobile-cta .mcta-secondary { border: 1px solid #D4AF37; color: #D4AF37; }
+  body.has-mobile-cta { padding-bottom: 76px; }
+  /* Keep the cookie banner above the sticky bar */
+  body.has-mobile-cta .cookie-banner { bottom: 86px; }
+
+  /* Compact header on Financial Services pages so the hero CTA is visible on first screen */
+  body.branch-page header { padding: 0.7rem 1rem !important; }
+  body.branch-page header img { height: 44px !important; }
+  body.branch-page nav { margin-top: 0.4rem !important; }
+  body.branch-page nav a { margin: 0 0.55rem !important; font-size: 0.92rem !important; }
+  body.branch-page .branch-bar { padding: 0.35rem 1rem !important; }
+  body.branch-page .hero { padding-top: 32px !important; min-height: 0 !important; }
+  body.branch-page .page-hero { padding-top: 36px !important; }
+}
+
+/* ---------- Loading states ---------- */
+.spinner {
+  display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 8px;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: hcm-spin 0.75s linear infinite;
+}
+@keyframes hcm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+button[aria-busy="true"], input[aria-busy="true"] { cursor: progress; opacity: 0.85; }
+
+/* ---------- Form error states ---------- */
+.field-error { display: block; color: #E77; font-size: 0.8rem; margin: 4px 0 10px 0; text-align: left; min-height: 0; }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: #E77 !important; outline-color: #E77; }
+.form-alert { margin-top: 12px; padding: 10px 12px; font-size: 0.88rem; text-align: left; }
+.form-alert.error { color: #E77; border: 1px solid rgba(231, 119, 119, 0.5); background: rgba(231, 119, 119, 0.08); }
+.form-alert.success { color: #8FCB8F; border: 1px solid rgba(143, 203, 143, 0.5); background: rgba(143, 203, 143, 0.08); }
+.form-alert:empty { display: none; }
+.pw-rules { list-style: none; padding: 0; margin: -6px 0 14px 0; text-align: left; font-size: 0.8rem; }
+.pw-rules li { color: #8FA0C4; margin: 2px 0; }
+.pw-rules li::before { content: "\2022  "; }
+.pw-rules li.ok { color: #8FCB8F; }
+.pw-rules li.ok::before { content: "\2713  "; }
+.honeypot { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; overflow: hidden; }
+
+/* Calendly placeholder until the widget loads */
+.widget-loading { color: #E8E0C5; font-size: 0.9rem; padding: 40px 20px; text-align: center; }

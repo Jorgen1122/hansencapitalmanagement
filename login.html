@@ -5,8 +5,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Login | Hansen Capital Management</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#071428">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="bitlogo.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 body {
@@ -47,6 +52,7 @@ nav a { margin: 0 0.75rem; display: inline-block; }
 .branch-bar { text-align: center; padding: 0.5rem 1rem; }
 }
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 
@@ -67,26 +73,35 @@ nav a { margin: 0 0.75rem; display: inline-block; }
 <div class="login-wrap">
 <div class="login-box">
 <h1 id="form-title">Client Login</h1>
-<form id="auth-form">
+<form id="auth-form" novalidate>
 <label for="email">Email</label>
-<input type="email" id="email" required autocomplete="email">
+<input type="email" id="email" required autocomplete="email" aria-describedby="email-error">
+<span class="field-error" id="email-error"></span>
 <label for="password">Password</label>
-<input type="password" id="password" required autocomplete="current-password">
+<input type="password" id="password" required autocomplete="current-password" aria-describedby="password-error">
+<span class="field-error" id="password-error"></span>
+<ul class="pw-rules" id="pw-rules" hidden aria-live="polite">
+<li id="rule-len">At least 12 characters</li>
+<li id="rule-upper">An uppercase letter</li>
+<li id="rule-lower">A lowercase letter</li>
+<li id="rule-num">A number</li>
+</ul>
 <button type="submit" class="btn" id="submit-btn">Log In</button>
-<div id="message"></div>
+<div id="message" class="form-alert" role="alert" aria-live="polite"></div>
 </form>
 <div class="toggle-mode">
 <span id="toggle-text">New client?</span>
-<a id="toggle-link" onclick="toggleMode()">Create an account</a>
+<a href="#" id="toggle-link" onclick="toggleMode(); return false;">Create an account</a>
 </div>
 <div class="toggle-mode" id="forgot-row">
-<a id="forgot-link" onclick="handleForgotPassword()">Forgot password?</a>
+<a href="#" id="forgot-link" onclick="handleForgotPassword(); return false;">Forgot password?</a>
 </div>
 </div>
 </div>
 
 <footer>
 <p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
+<p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a></p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -95,67 +110,132 @@ nav a { margin: 0 0.75rem; display: inline-block; }
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let mode = 'login';
 
+const $ = (id) => document.getElementById(id);
+const PW_RULES = [
+  ['len', (p) => p.length >= 12],
+  ['upper', (p) => /[A-Z]/.test(p)],
+  ['lower', (p) => /[a-z]/.test(p)],
+  ['num', (p) => /\d/.test(p)],
+];
+const passwordOk = (p) => PW_RULES.every(([, test]) => test(p));
+function updateRules(p) {
+  PW_RULES.forEach(([key, test]) => { const li = $('rule-' + key); if (li) li.classList.toggle('ok', test(p)); });
+}
+function friendlyError(err) {
+  const m = ((err && err.message) || '').toLowerCase();
+  const status = err && err.status;
+  if (status === 429 || m.includes('rate limit') || m.includes('too many'))
+    return 'Too many attempts. Please wait a few minutes, then try again.';
+  if (m.includes('invalid login credentials'))
+    return 'That email and password don’t match our records. Check for typos, or use “Forgot password?” below.';
+  if (m.includes('email not confirmed'))
+    return 'Please confirm your email first — check your inbox for the confirmation link.';
+  if (m.includes('already registered') || m.includes('already been registered'))
+    return 'An account with that email already exists. Try logging in instead.';
+  if (m.includes('should be different'))
+    return 'Your new password must be different from your current one.';
+  if (m.includes('password'))
+    return 'That password doesn’t meet the requirements. Use at least 12 characters with uppercase and lowercase letters and a number.';
+  if (m.includes('failed to fetch') || m.includes('network'))
+    return 'We couldn’t reach the server. Check your internet connection and try again.';
+  return 'Something went wrong. Please try again, or email general@hansencapitalmanagement.com.';
+}
+function setMessage(text, cls) {
+  const el = $('message');
+  el.textContent = text;
+  el.className = 'form-alert' + (cls ? ' ' + cls : '');
+}
+function fieldError(id, msg) {
+  const input = $(id), el = $(id + '-error');
+  if (msg) { input.setAttribute('aria-invalid', 'true'); el.textContent = msg; }
+  else { input.removeAttribute('aria-invalid'); el.textContent = ''; }
+}
+function setBusy(btn, busy, label) {
+  btn.disabled = busy;
+  btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  btn.textContent = '';
+  if (busy) { const sp = document.createElement('span'); sp.className = 'spinner'; sp.setAttribute('aria-hidden', 'true'); btn.appendChild(sp); }
+  btn.appendChild(document.createTextNode(label));
+}
+const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+const idleLabel = () => (mode === 'login' ? 'Log In' : 'Create Account');
+
 function toggleMode() {
-mode = mode === 'login' ? 'signup' : 'login';
-document.getElementById('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
-document.getElementById('submit-btn').textContent = mode === 'login' ? 'Log In' : 'Sign Up';
-document.getElementById('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
-document.getElementById('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
-document.getElementById('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
-setMessage('', '');
+  mode = mode === 'login' ? 'signup' : 'login';
+  $('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
+  $('submit-btn').textContent = idleLabel();
+  $('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
+  $('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
+  $('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
+  $('pw-rules').hidden = mode === 'login';
+  $('password').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
+  fieldError('email', ''); fieldError('password', '');
+  setMessage('', '');
 }
 
-function setMessage(text, cls) {
-const el = document.getElementById('message');
-el.textContent = text;
-el.className = cls || '';
-}
+$('password').addEventListener('input', (e) => { updateRules(e.target.value); if (e.target.value) fieldError('password', ''); });
+$('email').addEventListener('input', () => fieldError('email', ''));
 
 async function handleForgotPassword() {
-const email = document.getElementById('email').value.trim();
-if (!email) {
-setMessage('Enter your email above first, then click "Forgot password?"', 'error');
-return;
-}
-setMessage('Sending reset link…', '');
-try {
-const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
-});
-if (error) throw error;
-setMessage('If that email has an account, a reset link has been sent.', 'success');
-} catch (err) {
-setMessage(err.message || 'Something went wrong.', 'error');
-}
+  const email = $('email').value.trim();
+  if (!emailOk(email)) {
+    fieldError('email', 'Enter the email for your account, then click “Forgot password?” again.');
+    $('email').focus();
+    return;
+  }
+  const link = $('forgot-link');
+  link.setAttribute('aria-busy', 'true');
+  link.textContent = 'Sending reset link…';
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
+    });
+    if (error) throw error;
+    setMessage('If that email has an account, a reset link is on its way. It can take a few minutes to arrive.', 'success');
+  } catch (err) {
+    setMessage(friendlyError(err), 'error');
+  } finally {
+    link.removeAttribute('aria-busy');
+    link.textContent = 'Forgot password?';
+  }
 }
 
 supabaseClient.auth.getSession().then(({ data }) => {
-if (data.session) window.location.href = 'dashboard.html';
+  if (data.session) window.location.href = 'dashboard.html';
 });
 
-document.getElementById('auth-form').addEventListener('submit', async (e) => {
-e.preventDefault();
-const email = document.getElementById('email').value.trim();
-const password = document.getElementById('password').value;
-const btn = document.getElementById('submit-btn');
-btn.disabled = true;
-setMessage('', '');
-try {
-if (mode === 'login') {
-const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-if (error) throw error;
-window.location.href = 'dashboard.html';
-} else {
-const { error } = await supabaseClient.auth.signUp({ email, password });
-if (error) throw error;
-setMessage('Account created. Check your email to confirm, then log in.', 'success');
-toggleMode();
-}
-} catch (err) {
-setMessage(err.message || 'Something went wrong.', 'error');
-} finally {
-btn.disabled = false;
-}
+$('auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  const btn = $('submit-btn');
+  setMessage('', '');
+
+  let bad = false;
+  if (!emailOk(email)) { fieldError('email', 'Enter a valid email address.'); bad = true; } else fieldError('email', '');
+  if (!password) { fieldError('password', 'Enter your password.'); bad = true; }
+  else if (mode === 'signup' && !passwordOk(password)) { fieldError('password', 'Your password doesn’t meet all the requirements below.'); bad = true; }
+  else fieldError('password', '');
+  if (bad) { (document.querySelector('[aria-invalid="true"]') || btn).focus(); return; }
+
+  setBusy(btn, true, mode === 'login' ? 'Signing in…' : 'Creating account…');
+  try {
+    if (mode === 'login') {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      setBusy(btn, true, 'Opening your dashboard…');
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) throw error;
+    toggleMode();
+    setMessage('Account created. Check your email to confirm, then log in.', 'success');
+  } catch (err) {
+    setMessage(friendlyError(err), 'error');
+  }
+  setBusy(btn, false, idleLabel());
 });
 </script>
 </body>
