@@ -11,4 +11,4 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // CAPTCHA on login / password reset (Cloudflare Turnstile). Leave empty until you
 // create a Turnstile widget; paste its SITE key here (the public one, not the secret),
 // push, and only THEN enable CAPTCHA in Supabase > Authentication > Attack Protection.
-const TURNSTILE_SITE_KEY = "";
+const TURNSTILE_SITE_KEY = "0x4AAAAAAFeI6CK6sUTWMFJ9";
