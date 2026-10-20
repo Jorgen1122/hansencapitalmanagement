@@ -3,6 +3,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com; form-action 'self'; base-uri 'self'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Login | Hansen Capital Management</title>
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -80,21 +82,24 @@ nav a { margin: 0 0.75rem; display: inline-block; }
 <label for="password">Password</label>
 <input type="password" id="password" required autocomplete="current-password" aria-describedby="password-error">
 <span class="field-error" id="password-error"></span>
-<ul class="pw-rules" id="pw-rules" hidden aria-live="polite">
-<li id="rule-len">At least 12 characters</li>
-<li id="rule-upper">An uppercase letter</li>
-<li id="rule-lower">A lowercase letter</li>
-<li id="rule-num">A number</li>
-</ul>
+<div id="captcha" class="captcha" hidden></div>
 <button type="submit" class="btn" id="submit-btn">Log In</button>
 <div id="message" class="form-alert" role="alert" aria-live="polite"></div>
 </form>
-<div class="toggle-mode">
-<span id="toggle-text">New client?</span>
-<a href="#" id="toggle-link" onclick="toggleMode(); return false;">Create an account</a>
-</div>
+<form id="mfa-form" novalidate hidden>
+<p class="mfa-hint">Open your authenticator app and enter the 6-digit code for Hansen Capital Management.</p>
+<label for="mfa-code">Verification Code</label>
+<input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-describedby="mfa-code-error">
+<span class="field-error" id="mfa-code-error"></span>
+<button type="submit" class="btn" id="mfa-btn">Verify</button>
+<div id="mfa-message" class="form-alert" role="alert" aria-live="polite"></div>
+<div class="toggle-mode"><a href="#" id="mfa-cancel">Sign in with a different account</a></div>
+</form>
 <div class="toggle-mode" id="forgot-row">
-<a href="#" id="forgot-link" onclick="handleForgotPassword(); return false;">Forgot password?</a>
+<a href="#" id="forgot-link">Forgot password?</a>
+</div>
+<div class="toggle-mode" id="new-client-row">
+New client? Your login is set up when we start working together. <a href="contact2.html">Book an intro call</a>
 </div>
 </div>
 </div>
@@ -104,139 +109,9 @@ nav a { margin: 0 0.75rem; display: inline-block; }
 <p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a></p>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script src="supabase-config.js"></script>
-<script>
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let mode = 'login';
-
-const $ = (id) => document.getElementById(id);
-const PW_RULES = [
-  ['len', (p) => p.length >= 12],
-  ['upper', (p) => /[A-Z]/.test(p)],
-  ['lower', (p) => /[a-z]/.test(p)],
-  ['num', (p) => /\d/.test(p)],
-];
-const passwordOk = (p) => PW_RULES.every(([, test]) => test(p));
-function updateRules(p) {
-  PW_RULES.forEach(([key, test]) => { const li = $('rule-' + key); if (li) li.classList.toggle('ok', test(p)); });
-}
-function friendlyError(err) {
-  const m = ((err && err.message) || '').toLowerCase();
-  const status = err && err.status;
-  if (status === 429 || m.includes('rate limit') || m.includes('too many'))
-    return 'Too many attempts. Please wait a few minutes, then try again.';
-  if (m.includes('invalid login credentials'))
-    return 'That email and password don’t match our records. Check for typos, or use “Forgot password?” below.';
-  if (m.includes('email not confirmed'))
-    return 'Please confirm your email first — check your inbox for the confirmation link.';
-  if (m.includes('already registered') || m.includes('already been registered'))
-    return 'An account with that email already exists. Try logging in instead.';
-  if (m.includes('should be different'))
-    return 'Your new password must be different from your current one.';
-  if (m.includes('password'))
-    return 'That password doesn’t meet the requirements. Use at least 12 characters with uppercase and lowercase letters and a number.';
-  if (m.includes('failed to fetch') || m.includes('network'))
-    return 'We couldn’t reach the server. Check your internet connection and try again.';
-  return 'Something went wrong. Please try again, or email general@hansencapitalmanagement.com.';
-}
-function setMessage(text, cls) {
-  const el = $('message');
-  el.textContent = text;
-  el.className = 'form-alert' + (cls ? ' ' + cls : '');
-}
-function fieldError(id, msg) {
-  const input = $(id), el = $(id + '-error');
-  if (msg) { input.setAttribute('aria-invalid', 'true'); el.textContent = msg; }
-  else { input.removeAttribute('aria-invalid'); el.textContent = ''; }
-}
-function setBusy(btn, busy, label) {
-  btn.disabled = busy;
-  btn.setAttribute('aria-busy', busy ? 'true' : 'false');
-  btn.textContent = '';
-  if (busy) { const sp = document.createElement('span'); sp.className = 'spinner'; sp.setAttribute('aria-hidden', 'true'); btn.appendChild(sp); }
-  btn.appendChild(document.createTextNode(label));
-}
-const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-
-const idleLabel = () => (mode === 'login' ? 'Log In' : 'Create Account');
-
-function toggleMode() {
-  mode = mode === 'login' ? 'signup' : 'login';
-  $('form-title').textContent = mode === 'login' ? 'Client Login' : 'Create Account';
-  $('submit-btn').textContent = idleLabel();
-  $('toggle-text').textContent = mode === 'login' ? 'New client?' : 'Already have an account?';
-  $('toggle-link').textContent = mode === 'login' ? 'Create an account' : 'Log in';
-  $('forgot-row').style.display = mode === 'login' ? 'block' : 'none';
-  $('pw-rules').hidden = mode === 'login';
-  $('password').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
-  fieldError('email', ''); fieldError('password', '');
-  setMessage('', '');
-}
-
-$('password').addEventListener('input', (e) => { updateRules(e.target.value); if (e.target.value) fieldError('password', ''); });
-$('email').addEventListener('input', () => fieldError('email', ''));
-
-async function handleForgotPassword() {
-  const email = $('email').value.trim();
-  if (!emailOk(email)) {
-    fieldError('email', 'Enter the email for your account, then click “Forgot password?” again.');
-    $('email').focus();
-    return;
-  }
-  const link = $('forgot-link');
-  link.setAttribute('aria-busy', 'true');
-  link.textContent = 'Sending reset link…';
-  try {
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://www.hansencapitalmanagement.com/reset-password.html',
-    });
-    if (error) throw error;
-    setMessage('If that email has an account, a reset link is on its way. It can take a few minutes to arrive.', 'success');
-  } catch (err) {
-    setMessage(friendlyError(err), 'error');
-  } finally {
-    link.removeAttribute('aria-busy');
-    link.textContent = 'Forgot password?';
-  }
-}
-
-supabaseClient.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.href = 'dashboard.html';
-});
-
-$('auth-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = $('email').value.trim();
-  const password = $('password').value;
-  const btn = $('submit-btn');
-  setMessage('', '');
-
-  let bad = false;
-  if (!emailOk(email)) { fieldError('email', 'Enter a valid email address.'); bad = true; } else fieldError('email', '');
-  if (!password) { fieldError('password', 'Enter your password.'); bad = true; }
-  else if (mode === 'signup' && !passwordOk(password)) { fieldError('password', 'Your password doesn’t meet all the requirements below.'); bad = true; }
-  else fieldError('password', '');
-  if (bad) { (document.querySelector('[aria-invalid="true"]') || btn).focus(); return; }
-
-  setBusy(btn, true, mode === 'login' ? 'Signing in…' : 'Creating account…');
-  try {
-    if (mode === 'login') {
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      setBusy(btn, true, 'Opening your dashboard…');
-      window.location.href = 'dashboard.html';
-      return;
-    }
-    const { error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) throw error;
-    toggleMode();
-    setMessage('Account created. Check your email to confirm, then log in.', 'success');
-  } catch (err) {
-    setMessage(friendlyError(err), 'error');
-  }
-  setBusy(btn, false, idleLabel());
-});
-</script>
+<script src="portal-auth.js"></script>
+<script src="login.js"></script>
 </body>
 </html>

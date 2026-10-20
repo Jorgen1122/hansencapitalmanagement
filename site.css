@@ -78,3 +78,18 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: #E77 !
 
 /* Calendly placeholder until the widget loads */
 .widget-loading { color: #E8E0C5; font-size: 0.9rem; padding: 40px 20px; text-align: center; }
+
+/* ---------- Client portal: two-step verification + CAPTCHA ---------- */
+.security-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 22px 24px; margin-top: 20px; text-align: left; color: #E8E0C5; }
+.security-box .sec-status { margin: 0 0 14px 0; font-size: 0.95rem; }
+.security-box .sec-small { font-size: 0.82rem; color: #8FA0C4; }
+.security-box code { color: #D4AF37; word-break: break-all; font-size: 0.85rem; }
+.security-box img#mfa-qr { display: block; background: #fff; padding: 8px; margin: 10px 0; width: 180px; height: 180px; }
+.security-box label { display: block; color: #E8E0C5; font-size: 0.9rem; margin: 14px 0 6px 0; }
+.security-box input[type="text"] { width: 180px; box-sizing: border-box; background: #030D1D; border: 1px solid rgba(212, 175, 55, 0.35); color: #E8E0C5; padding: 10px 12px; font-size: 1.1rem; letter-spacing: 4px; }
+.sec-actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.btn-plain { background: none; border: 1px solid rgba(212, 175, 55, 0.5); color: #D4AF37; padding: 9px 18px; font-size: 0.9rem; cursor: pointer; }
+.btn-plain:hover { background: rgba(212, 175, 55, 0.1); }
+.mfa-hint { color: #E8E0C5; font-size: 0.9rem; text-align: left; }
+#mfa-code { letter-spacing: 4px; font-size: 1.15rem; }
+.captcha { margin: 14px 0 4px 0; min-height: 65px; }
