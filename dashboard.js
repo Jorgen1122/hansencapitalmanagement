@@ -51,6 +51,7 @@ renderPnl();
 renderCashStats();
 await loadReports();
 await loadBilling();
+await loadExtras();
 showTab(location.hash.slice(1));
 
 document.querySelectorAll('.chart-tab').forEach(tab => {
@@ -339,7 +340,7 @@ firmRows.appendChild(tr);
 document.querySelectorAll('.doc-download-link').forEach(link => {
 link.addEventListener('click', async (e) => {
 e.preventDefault();
-const path = link.dataset.path;
+const path = (link.dataset.path || '').trim();
 link.textContent = 'Loading…';
 const { data, error } = await supabaseClient.storage
 .from(DOCS_BUCKET)
@@ -702,7 +703,7 @@ y: { ticks: { color: '#A9B3C2', callback: fmtAxis }, grid: { color: (c) => c.tic
 async function signedOpen(path, link) {
 const label = link.textContent;
 link.textContent = 'Opening…';
-const { data, error } = await supabaseClient.storage.from(DOCS_BUCKET).createSignedUrl(path, 60);
+const { data, error } = await supabaseClient.storage.from(DOCS_BUCKET).createSignedUrl(String(path).trim(), 60);
 link.textContent = label;
 if (error || !data) { link.textContent = 'Error — try again'; console.error(error); return; }
 window.open(data.signedUrl, '_blank', 'noopener');
@@ -782,4 +783,62 @@ tbody.appendChild(tr);
 });
 table.append(thead, tbody);
 empty.hidden = true;
+}
+
+// ---------- Analyst note, month-end checklist, deadlines ----------
+// Rows are written by HCM in Supabase; clients can only read their own (RLS). Rendered with textContent only.
+async function loadExtras() {
+const cid = currentClient.id;
+const [noteRes, checkRes, dueRes] = await Promise.all([
+supabaseClient.from('analyst_notes').select('period_end, note').eq('client_id', cid).order('period_end', { ascending: false }).order('created_at', { ascending: false }).limit(1),
+supabaseClient.from('close_checklist').select('period_end, item, done, needs_client, sort_order').eq('client_id', cid).order('period_end', { ascending: false }).order('sort_order', { ascending: true }).limit(40),
+supabaseClient.from('client_deadlines').select('title, due_date, detail, done').eq('client_id', cid).eq('done', false).order('due_date', { ascending: true }).limit(6),
+]);
+
+const note = !noteRes.error && noteRes.data && noteRes.data[0];
+if (note && note.note) {
+document.getElementById('note-period').textContent = fmtDate(note.period_end, { month: 'long', year: 'numeric' });
+document.getElementById('note-body').textContent = note.note;
+document.getElementById('note-panel').hidden = false;
+}
+
+const items = (!checkRes.error && checkRes.data) || [];
+if (items.length) {
+const period = items[0].period_end;
+const cur = items.filter(i => i.period_end === period);
+const done = cur.filter(i => i.done).length;
+document.getElementById('close-title').textContent = `${fmtDate(period, { month: 'long' })} close`;
+document.getElementById('close-fill').style.width = `${Math.round(done / cur.length * 100)}%`;
+document.getElementById('close-count').textContent = `${done} of ${cur.length} complete`;
+const list = document.getElementById('close-list');
+list.textContent = '';
+cur.forEach(i => {
+const li = el('li', i.done ? 'done' : (i.needs_client ? 'needs-you' : 'pending'));
+li.appendChild(el('span', 'ck', i.done ? '✓' : (i.needs_client ? '!' : '○')));
+li.appendChild(el('span', null, i.item));
+if (!i.done && i.needs_client) li.appendChild(el('span', 'ck-tag', 'Needs you'));
+list.appendChild(li);
+});
+document.getElementById('close-card').hidden = false;
+}
+
+const dues = (!dueRes.error && dueRes.data) || [];
+if (dues.length) {
+const list = document.getElementById('deadline-list');
+list.textContent = '';
+const today = new Date(); today.setHours(0, 0, 0, 0);
+dues.forEach(d => {
+const li = el('li', null);
+const due = new Date(d.due_date + 'T00:00:00');
+const days = Math.round((due - today) / 86400000);
+const when = el('span', 'dl-date ' + (days < 0 ? 'late' : (days <= 14 ? 'soon' : '')), fmtDate(d.due_date, { month: 'short', day: 'numeric' }));
+const what = el('span', 'dl-what');
+what.appendChild(el('span', 'dl-title', d.title));
+if (d.detail) what.appendChild(el('span', 'dl-detail', d.detail));
+what.appendChild(el('span', 'dl-days', days < 0 ? `${-days} day${days === -1 ? '' : 's'} past due` : (days === 0 ? 'Today' : `In ${days} day${days === 1 ? '' : 's'}`)));
+li.append(when, what);
+list.appendChild(li);
+});
+document.getElementById('deadline-card').hidden = false;
+}
 }

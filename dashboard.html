@@ -65,6 +65,11 @@ first month's books are closed.
 <div class="dash-body">
 <div class="dash-main">
 
+<section class="panel note-panel" id="note-panel" aria-labelledby="note-title" hidden>
+<div class="panel-bar"><h2 class="panel-title" id="note-title">Analyst Note</h2><span class="note-period" id="note-period"></span></div>
+<p class="note-body" id="note-body"></p>
+</section>
+
 <section class="panel chart-box" aria-labelledby="trends-title">
 <div class="panel-bar">
 <h2 class="panel-title" id="trends-title">Trends</h2>
@@ -106,6 +111,18 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 <div class="amount" id="payment-amount">—</div>
 <a href="#" id="pay-link" class="btn-pay" target="_blank" rel="noopener" style="display:none;">View &amp; Pay Invoice</a>
+</div>
+
+<div class="panel rail-card" id="close-card" hidden>
+<p class="rail-label" id="close-title">Month-end close</p>
+<div class="close-bar" aria-hidden="true"><span id="close-fill"></span></div>
+<p class="close-count" id="close-count"></p>
+<ul class="close-list" id="close-list"></ul>
+</div>
+
+<div class="panel rail-card" id="deadline-card" hidden>
+<p class="rail-label">Coming up</p>
+<ul class="deadline-list" id="deadline-list"></ul>
 </div>
 
 <div class="panel rail-card">

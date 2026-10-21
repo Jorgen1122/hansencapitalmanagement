@@ -616,3 +616,28 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .bill-actions a + a { margin-left: 14px; }
 .bill-pay { min-height: 32px; padding: 0 16px; font-size: 0.82rem; vertical-align: middle; }
 .bill-pdf { font-weight: 600; font-size: 0.86rem; }
+
+/* ---------- Analyst note, month-end close, deadlines ---------- */
+.note-panel { border-color: rgba(212, 175, 55, 0.4); }
+.note-period { font-size: 0.78rem; color: var(--dim); letter-spacing: 0.06em; }
+.note-body { margin: 0; padding: 18px 22px 22px; font-family: var(--serif); font-size: 1.3rem; line-height: 1.5; color: var(--ivory); white-space: pre-line; max-width: 75ch; }
+.close-bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: 6px 0 8px; }
+.close-bar span { display: block; height: 100%; width: 0; background: var(--up); border-radius: 3px; transition: width 400ms var(--ease); }
+.close-count { font-size: 0.82rem; color: var(--muted); margin: 0 0 10px; }
+.close-list, .deadline-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; }
+.close-list li { display: flex; gap: 10px; align-items: baseline; color: var(--text); }
+.close-list .ck { width: 14px; flex: none; text-align: center; font-weight: 700; }
+.close-list .done .ck { color: var(--up); }
+.close-list .done { color: var(--muted); }
+.close-list .needs-you .ck { color: var(--gold); }
+.close-list .pending .ck { color: var(--dim); }
+.ck-tag { margin-left: auto; flex: none; font-size: 0.68rem; font-weight: 600; color: var(--gold); border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 999px; padding: 1px 8px; }
+.deadline-list li { display: flex; gap: 14px; align-items: flex-start; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.deadline-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.dl-date { flex: none; width: 56px; font-weight: 600; color: var(--ivory); font-variant-numeric: tabular-nums; }
+.dl-date.soon { color: var(--gold); }
+.dl-date.late { color: var(--down); }
+.dl-what { display: flex; flex-direction: column; min-width: 0; }
+.dl-title { color: var(--ivory); }
+.dl-detail { font-size: 0.8rem; color: var(--muted); }
+.dl-days { font-size: 0.75rem; color: var(--dim); }
