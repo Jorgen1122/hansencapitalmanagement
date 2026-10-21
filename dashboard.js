@@ -6,7 +6,7 @@ let kpiHistory = [];
 let trendChart = null;
 let chartMetric = 'net_income_mtd';
 let chartView = 'monthly';
-const CHART_MONTHS = 13; // bars shown: current + trailing 12
+let chartMonths = 13; // bars shown: current + trailing 12 (range buttons change it)
 
 const METRIC_LABELS = {
 net_income_mtd: 'Net Income',
@@ -47,6 +47,11 @@ document.getElementById('dashboard-content').style.display = 'block';
 await loadPaymentStatus();
 await loadKpiHistory();
 await loadDocuments();
+renderPnl();
+renderCashStats();
+await loadReports();
+await loadBilling();
+showTab(location.hash.slice(1));
 
 document.querySelectorAll('.chart-tab').forEach(tab => {
 tab.addEventListener('click', () => {
@@ -64,7 +69,16 @@ chartView = tab.dataset.view;
 renderChart();
 });
 });
+document.querySelectorAll('.range-tab').forEach(tab => {
+tab.addEventListener('click', () => {
+document.querySelectorAll('.range-tab').forEach(t => t.classList.remove('active'));
+tab.classList.add('active');
+chartMonths = Number(tab.dataset.range) || 13;
+renderChart();
+});
+});
 }
+
 
 async function loadPaymentStatus() {
 const { data, error } = await supabaseClient
@@ -119,16 +133,46 @@ document.getElementById('period-label').textContent =
 const fmt = (n) => n == null ? '—' : `${Number(n) < 0 ? '-' : ''}$${Math.abs(Number(n)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtPct = (n) => n == null ? '—' : `${(Number(n) * 100).toFixed(1)}%`;
 
+const prev = kpiHistory.length > 1 ? kpiHistory[kpiHistory.length - 2] : null;
+// Change vs. the prior month: % for dollar figures, points for margins. "up" = good for the business.
+const chg = (key, isPct, costLike) => {
+if (!prev || latest[key] == null || prev[key] == null) return null;
+const a = Number(latest[key]), b = Number(prev[key]);
+let text;
+if (isPct) { const d = (a - b) * 100; text = `${d >= 0 ? '+' : ''}${d.toFixed(1)} pts`; }
+else { if (!b) return null; const d = (a - b) / Math.abs(b) * 100; text = `${d >= 0 ? '+' : ''}${d.toFixed(1)}%`; }
+const good = costLike ? a <= b : a >= b;
+return { text: `${text} vs prior month`, cls: a === b ? 'flat' : (good ? 'up' : 'down') };
+};
+// Runway: cash divided by average monthly expenses over the last 3 closed months
+const recent = kpiHistory.slice(-3).map(r => Number(r.expenses_mtd)).filter(v => v > 0);
+const avgSpend = recent.length ? recent.reduce((x, y) => x + y, 0) / recent.length : 0;
+const runway = (latest.cash != null && avgSpend) ? (Number(latest.cash) / avgSpend) : null;
+const spark = (key) => {
+const vals = kpiHistory.slice(-12).map(r => r[key]).filter(v => v != null).map(Number);
+if (vals.length < 2) return '';
+const lo = Math.min(...vals), hi = Math.max(...vals), span = (hi - lo) || 1;
+const pts = vals.map((v, i) => `${(i / (vals.length - 1) * 80).toFixed(1)},${(22 - (v - lo) / span * 20).toFixed(1)}`).join(' ');
+return `<svg class="spark" viewBox="0 0 80 24" width="80" height="24" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+};
+
 const cards = [
-['Cash Balance', fmt(latest.cash), ''],
-['Revenue (MTD)', fmt(latest.revenue_mtd), `YTD ${fmt(latest.ytd_revenue)}`],
-['Expenses (MTD)', fmt(latest.expenses_mtd), `YTD ${fmt(latest.ytd_expenses)}`],
-['Net Income (MTD)', fmt(latest.net_income_mtd), `YTD ${fmt(latest.ytd_net_income)}`],
-['Gross Margin', fmtPct(latest.gross_margin), `YTD ${fmtPct(latest.ytd_gross_margin)}`],
+['Cash Balance', fmt(latest.cash), '', chg('cash'), spark('cash')],
+['Revenue (MTD)', fmt(latest.revenue_mtd), `YTD ${fmt(latest.ytd_revenue)}`, chg('revenue_mtd'), spark('revenue_mtd')],
+['Expenses (MTD)', fmt(latest.expenses_mtd), `YTD ${fmt(latest.ytd_expenses)}`, chg('expenses_mtd', false, true), spark('expenses_mtd')],
+['Net Income (MTD)', fmt(latest.net_income_mtd), `YTD ${fmt(latest.ytd_net_income)}`, chg('net_income_mtd'), spark('net_income_mtd')],
+['Gross Margin', fmtPct(latest.gross_margin), `YTD ${fmtPct(latest.ytd_gross_margin)}`, chg('gross_margin', true), spark('gross_margin')],
+['Cash Runway', runway == null ? '—' : `${runway.toFixed(1)} mo`, 'Cash ÷ avg monthly expenses (3 mo)', null, ''],
 ];
-document.getElementById('kpi-grid').innerHTML = cards.map(([label, value, sub]) => `
-<div class="kpi-card"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
+document.getElementById('kpi-grid').innerHTML = cards.map(([label, value, sub, delta, sp]) => `
+<div class="kpi-card"><div class="label">${label}</div><div class="value">${value}</div>${delta ? `<div class="delta ${delta.cls}">${delta.text}</div>` : ''}${sub ? `<div class="sub">${sub}</div>` : ''}${sp}</div>
 `).join('');
+
+const closed = fmtDate(latest.period_end, { month: 'short', day: 'numeric', year: 'numeric' });
+const bs = document.getElementById('books-status');
+if (bs) { bs.textContent = `Books closed through ${closed}`; bs.hidden = false; }
+const rc = document.getElementById('rail-closed');
+if (rc) rc.textContent = `Closed through ${closed}`;
 
 renderChart();
 }
@@ -167,7 +211,7 @@ return row[metric]; // monthly view, and cash (a balance) in both views
 
 function renderChart() {
 const metric = chartMetric, view = chartView;
-const rows = kpiHistory.slice(-CHART_MONTHS);
+const rows = kpiHistory.slice(-chartMonths);
 if (rows.length < 1) return;
 const isPct = RATIO_METRICS.includes(metric);
 const isYtd = view === 'ytd' && metric !== 'cash';
@@ -189,16 +233,17 @@ else note.textContent = 'Each point adds that month to the months before it, res
 const fmtAxis = (v) => isPct ? `${Number(v).toFixed(0)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString()}`;
 const fmtTip = (v) => isPct ? `${Number(v).toFixed(1)}%` : `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const label = (isYtd ? 'YTD ' : '') + METRIC_LABELS[metric];
-// expenses are a cost, so show them in gold like the others; only negative values turn red
-const barColors = values.map(v => (v != null && v < 0) ? '#C0504D' : '#D4AF37');
+// one gold series; only negative values turn red
+const barColors = values.map(v => (v != null && v < 0) ? '#E07A5F' : '#D4AF37');
 
+Chart.defaults.font.family = "Inter, 'Helvetica Neue', Arial, sans-serif";
 if (trendChart) trendChart.destroy();
 const ctx = document.getElementById('trend-chart').getContext('2d');
 const dataset = useLine ? {
 label,
 data: values,
 borderColor: '#D4AF37',
-backgroundColor: 'rgba(212, 175, 55, 0.1)',
+backgroundColor: 'rgba(212, 175, 55, 0.12)',
 tension: 0.25,
 fill: true,
 pointBackgroundColor: '#D4AF37',
@@ -216,15 +261,16 @@ type: useLine ? 'line' : 'bar',
 data: { labels, datasets: [dataset] },
 options: {
 responsive: true,
+maintainAspectRatio: false,
 plugins: {
 legend: { display: false },
 tooltip: { callbacks: { label: (c) => `${label}: ${fmtTip(c.parsed.y)}` } }
 },
 scales: {
-x: { ticks: { color: '#E8E0C5' }, grid: useLine ? { color: 'rgba(212,175,55,0.08)' } : { display: false } },
+x: { ticks: { color: '#A9B3C2' }, grid: useLine ? { color: 'rgba(244,240,230,0.06)' } : { display: false } },
 y: {
-ticks: { color: '#E8E0C5', callback: fmtAxis },
-grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(232,224,197,0.55)' : 'rgba(212,175,55,0.08)' }
+ticks: { color: '#A9B3C2', callback: fmtAxis },
+grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(244,240,230,0.45)' : 'rgba(244,240,230,0.06)' }
 }
 }
 }
@@ -406,6 +452,8 @@ async function refreshMfa() {
 const el = mfaEls();
 el.enroll.hidden = true;
 const factor = await hcmAuth.verifiedFactor(supabaseClient).catch(() => null);
+const pill = document.getElementById('sec-pill');
+if (pill) { pill.hidden = false; pill.textContent = factor ? '2-step on' : '2-step off'; pill.className = 'sec-pill ' + (factor ? 'on' : 'off'); }
 if (factor) {
 el.status.textContent = 'Two-step verification is ON. You’ll enter a code from your authenticator app each time you sign in.';
 el.enable.hidden = true;
@@ -493,3 +541,245 @@ setBusy(btn, false, 'Turn Off Two-Step Verification');
 });
 
 init().then(() => { if (currentClient) refreshMfa(); });
+
+// =====================================================================
+// Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
+// Everything below renders with DOM methods and textContent only.
+// =====================================================================
+const TABS = ['overview', 'pnl', 'cash', 'reports', 'billing', 'documents', 'security'];
+function showTab(name) {
+if (name && !TABS.includes(name)) return; // e.g. the skip link
+if (!name) name = 'overview';
+document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p.dataset.tab !== name; });
+document.querySelectorAll('.portal-nav a').forEach(a => {
+const on = a.getAttribute('href') === '#' + name;
+a.classList.toggle('active', on);
+if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+});
+if (name === 'cash') renderCashChart();
+}
+window.addEventListener('hashchange', () => { showTab(location.hash.slice(1)); window.scrollTo(0, 0); });
+
+const money = (n, opts) => {
+if (n == null || isNaN(n)) return '—';
+const v = Number(n), neg = v < 0, abs = Math.abs(v);
+const s = '$' + abs.toLocaleString(undefined, { minimumFractionDigits: (opts && opts.cents) ? 2 : 0, maximumFractionDigits: (opts && opts.cents) ? 2 : 0 });
+return neg ? `(${s})` : s;
+};
+const pctTxt = (n) => (n == null || isNaN(n)) ? '—' : `${(Number(n) * 100).toFixed(1)}%`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const safeUrl = (u) => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : null;
+
+function statCards(containerId, cards) {
+const box = document.getElementById(containerId);
+box.textContent = '';
+cards.forEach(([label, value, sub]) => {
+const c = el('div', 'kpi-card');
+c.append(el('div', 'label', label), el('div', 'value', value));
+if (sub) c.append(el('div', 'sub', sub));
+box.appendChild(c);
+});
+}
+
+// ---------- P&L ----------
+let pnlMonths = 6;
+function pnlLine(rows) {
+let rev = 0, exp = 0, ni = 0, gp = 0, gpKnown = true;
+rows.forEach(r => {
+const rv = Number(r.revenue_mtd) || 0;
+rev += rv; exp += Number(r.expenses_mtd) || 0; ni += Number(r.net_income_mtd) || 0;
+if (r.gross_margin == null) gpKnown = false; else gp += Number(r.gross_margin) * rv;
+});
+const cogs = gpKnown ? rev - gp : null;
+return { rev, cogs, gp: gpKnown ? gp : null, opex: gpKnown ? exp - cogs : null, ni, gm: (gpKnown && rev) ? gp / rev : null, nm: rev ? ni / rev : null };
+}
+function renderPnl() {
+const table = document.getElementById('pnl-table'), empty = document.getElementById('pnl-empty');
+table.textContent = '';
+if (!kpiHistory.length) { table.hidden = true; empty.hidden = false; return; }
+const months = kpiHistory.slice(-pnlMonths);
+const latest = kpiHistory[kpiHistory.length - 1];
+const yr = new Date(latest.period_end).getUTCFullYear();
+const ytd = kpiHistory.filter(r => new Date(r.period_end).getUTCFullYear() === yr);
+const cols = months.map(r => ({ label: fmtDate(r.period_end, { month: 'short', year: '2-digit' }), v: pnlLine([r]) }));
+cols.push({ label: `YTD ${yr}`, v: pnlLine(ytd), ytd: true });
+const spec = [
+['Revenue', 'rev', ''], ['Cost of sales', 'cogs', 'cost'], ['Gross profit', 'gp', 'sub'],
+['Operating expenses', 'opex', 'cost'], ['Net income', 'ni', 'total'],
+['Gross margin', 'gm', 'pct'], ['Net margin', 'nm', 'pct'],
+];
+const thead = el('thead'), hr = el('tr');
+hr.appendChild(el('th', null, ''));
+cols.forEach(c => { const th = el('th', c.ytd ? 'ytd' : null, c.label); th.scope = 'col'; hr.appendChild(th); });
+thead.appendChild(hr);
+const tbody = el('tbody');
+spec.forEach(([label, key, kind]) => {
+const tr = el('tr', kind ? 'row-' + kind : null);
+const th = el('th', null, label); th.scope = 'row'; tr.appendChild(th);
+cols.forEach(c => {
+const raw = c.v[key];
+const val = kind === 'pct' ? pctTxt(raw) : money(kind === 'cost' && raw != null ? -raw : raw);
+const td = el('td', (c.ytd ? 'ytd ' : '') + ((raw != null && kind !== 'cost' && raw < 0) ? 'neg' : ''), val);
+tr.appendChild(td);
+});
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+table.hidden = false; empty.hidden = true;
+}
+document.querySelectorAll('.pnl-range').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.pnl-range').forEach(x => x.classList.remove('active'));
+b.classList.add('active'); pnlMonths = Number(b.dataset.months) || 6; renderPnl();
+}));
+
+// ---------- Cash ----------
+let cashChart = null;
+function renderCashStats() {
+const empty = document.getElementById('cash-empty'), table = document.getElementById('cash-table');
+table.textContent = '';
+if (!kpiHistory.length) { statCards('cash-stats', []); empty.hidden = false; return; }
+const latest = kpiHistory[kpiHistory.length - 1];
+const recent = kpiHistory.slice(-3).map(r => Number(r.expenses_mtd)).filter(v => v > 0);
+const avg = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+const cash = latest.cash == null ? null : Number(latest.cash);
+const ar = latest.accounts_receivable == null ? null : Number(latest.accounts_receivable);
+const ap = latest.accounts_payable == null ? null : Number(latest.accounts_payable);
+const wc = (cash != null && ar != null && ap != null) ? cash + ar - ap : null;
+statCards('cash-stats', [
+['Cash', money(cash, { cents: true }), `As of ${fmtDate(latest.period_end, { month: 'short', day: 'numeric', year: 'numeric' })}`],
+['Accounts receivable', money(ar, { cents: true }), 'Owed to you'],
+['Accounts payable', money(ap, { cents: true }), 'You owe'],
+['Working capital', money(wc, { cents: true }), 'Cash + receivables − payables'],
+['Cash runway', (cash != null && avg) ? `${(cash / avg).toFixed(1)} mo` : '—', 'At avg monthly expenses (3 mo)'],
+]);
+const rows = kpiHistory.slice(-12);
+const thead = el('thead'), hr = el('tr');
+['Month', 'Cash', 'Change', 'Net income', 'Receivables', 'Payables'].forEach((h, i) => { const th = el('th', null, h); th.scope = 'col'; hr.appendChild(th); });
+thead.appendChild(hr);
+const tbody = el('tbody');
+rows.slice().reverse().forEach(r => {
+const idx = kpiHistory.indexOf(r), prev = idx > 0 ? kpiHistory[idx - 1] : null;
+const chg = (prev && r.cash != null && prev.cash != null) ? Number(r.cash) - Number(prev.cash) : null;
+const tr = el('tr');
+const th = el('th', null, fmtDate(r.period_end, { month: 'short', year: 'numeric' })); th.scope = 'row'; tr.appendChild(th);
+[[r.cash], [chg, true], [r.net_income_mtd, true], [r.accounts_receivable], [r.accounts_payable]].forEach(([v, signed]) => {
+const n = v == null ? null : Number(v);
+tr.appendChild(el('td', (signed && n != null) ? (n < 0 ? 'neg' : 'pos') : null, (signed && n != null && n > 0 ? '+' : '') + money(n)));
+});
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+empty.hidden = true;
+}
+function renderCashChart() {
+const rows = kpiHistory.slice(-13);
+if (rows.length < 1 || !window.Chart) return;
+const labels = rows.map(r => fmtDate(r.period_end, { month: 'short', year: '2-digit' }));
+const cash = rows.map(r => r.cash == null ? null : Number(r.cash));
+const change = rows.map((r, i) => {
+const idx = kpiHistory.indexOf(r), prev = idx > 0 ? kpiHistory[idx - 1] : null;
+return (prev && r.cash != null && prev.cash != null) ? Number(r.cash) - Number(prev.cash) : null;
+});
+if (cashChart) cashChart.destroy();
+const fmtAxis = (v) => `${Number(v) < 0 ? '-' : ''}$${Math.abs(Number(v)).toLocaleString()}`;
+cashChart = new Chart(document.getElementById('cash-chart').getContext('2d'), {
+data: { labels, datasets: [
+{ type: 'line', label: 'Cash balance', data: cash, borderColor: '#D4AF37', backgroundColor: 'rgba(212,175,55,0.12)', fill: true, tension: 0.25, pointRadius: 3, pointBackgroundColor: '#D4AF37', order: 1 },
+{ type: 'bar', label: 'Change in cash', data: change, backgroundColor: change.map(v => (v != null && v < 0) ? 'rgba(224,122,95,0.75)' : 'rgba(111,211,164,0.6)'), maxBarThickness: 36, order: 2 },
+] },
+options: {
+responsive: true, maintainAspectRatio: false,
+plugins: { legend: { labels: { color: '#A9B3C2', boxWidth: 12 } }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money(c.parsed.y, { cents: true })}` } } },
+scales: {
+x: { ticks: { color: '#A9B3C2' }, grid: { display: false } },
+y: { ticks: { color: '#A9B3C2', callback: fmtAxis }, grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(244,240,230,0.45)' : 'rgba(244,240,230,0.06)' } },
+},
+},
+});
+}
+
+// ---------- Reports (deliverables we've shared) ----------
+async function signedOpen(path, link) {
+const label = link.textContent;
+link.textContent = 'Opening…';
+const { data, error } = await supabaseClient.storage.from(DOCS_BUCKET).createSignedUrl(path, 60);
+link.textContent = label;
+if (error || !data) { link.textContent = 'Error — try again'; console.error(error); return; }
+window.open(data.signedUrl, '_blank', 'noopener');
+}
+async function loadReports() {
+const box = document.getElementById('report-list');
+const { data, error } = await supabaseClient
+.from('documents').select('*')
+.eq('client_id', currentClient.id).eq('direction', 'firm_deliverable')
+.order('uploaded_at', { ascending: false });
+box.textContent = '';
+if (error || !data || !data.length) { box.appendChild(el('p', 'empty-note panel-empty', 'No reports shared yet. Your monthly statements and analysis will appear here.')); return; }
+const groups = {};
+data.forEach(d => { const k = (d.category || 'Other').trim() || 'Other'; (groups[k] = groups[k] || []).push(d); });
+Object.keys(groups).forEach(cat => {
+const sec = el('div', 'report-group');
+sec.appendChild(el('h3', 'report-cat', cat.replace(/\b\w/g, ch => ch.toUpperCase())));
+const list = el('div', 'report-rows');
+groups[cat].forEach(d => {
+const row = el('div', 'report-row');
+const meta = el('div', 'report-meta');
+meta.append(el('span', 'report-name', d.filename || 'Document'), el('span', 'report-date', new Date(d.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })));
+const btn = el('a', 'btn-plain report-dl', 'Download'); btn.href = '#';
+btn.addEventListener('click', (e) => { e.preventDefault(); if (d.storage_path) signedOpen(d.storage_path, btn); });
+row.append(meta, btn);
+list.appendChild(row);
+});
+sec.appendChild(list);
+box.appendChild(sec);
+});
+}
+
+// ---------- Billing ----------
+async function loadBilling() {
+const table = document.getElementById('billing-table'), empty = document.getElementById('billing-empty');
+const { data, error } = await supabaseClient
+.from('payments').select('*')
+.eq('client_id', currentClient.id)
+.order('period_end', { ascending: false });
+table.textContent = '';
+if (error || !data || !data.length) { statCards('billing-stats', []); empty.hidden = false; return; }
+const now = new Date();
+const open = data.filter(p => p.status === 'open');
+const openBal = open.reduce((a, p) => a + (Number(p.amount_due) || 0) - (Number(p.amount_paid) || 0), 0);
+const yr = now.getFullYear();
+const paidYtd = data.filter(p => p.status === 'paid' && new Date(p.period_end || p.created_at).getFullYear() === yr)
+.reduce((a, p) => a + (Number(p.amount_paid) || Number(p.amount_due) || 0), 0);
+const nextDue = open.map(p => p.due_date).filter(Boolean).sort()[0];
+statCards('billing-stats', [
+['Open balance', money(openBal, { cents: true }), open.length ? `${open.length} open invoice${open.length > 1 ? 's' : ''}` : 'All paid'],
+['Next due', nextDue ? fmtDate(nextDue, { month: 'short', day: 'numeric', year: 'numeric' }) : '—', ''],
+[`Paid in ${yr}`, money(paidYtd, { cents: true }), ''],
+]);
+const thead = el('thead'), hr = el('tr');
+['Period', 'Amount', 'Paid', 'Due', 'Status', ''].forEach(h => { const th = el('th', null, h); th.scope = 'col'; hr.appendChild(th); });
+thead.appendChild(hr);
+const tbody = el('tbody');
+data.forEach(p => {
+const tr = el('tr');
+const period = p.period_start && p.period_end
+? `${fmtDate(p.period_start, { month: 'short', day: 'numeric' })} – ${fmtDate(p.period_end, { month: 'short', day: 'numeric', year: 'numeric' })}`
+: fmtDate(p.created_at, { month: 'short', day: 'numeric', year: 'numeric' });
+const th = el('th', null, period); th.scope = 'row'; tr.appendChild(th);
+tr.appendChild(el('td', null, money(p.amount_due, { cents: true })));
+tr.appendChild(el('td', null, money(p.amount_paid, { cents: true })));
+tr.appendChild(el('td', null, p.due_date ? fmtDate(p.due_date, { month: 'short', day: 'numeric' }) : '—'));
+const overdue = p.status === 'open' && p.due_date && new Date(p.due_date) < now;
+const stTd = el('td');
+stTd.appendChild(el('span', 'badge ' + (p.status === 'paid' ? 'paid' : (overdue ? 'overdue' : 'open')), p.status === 'paid' ? 'Paid' : (overdue ? 'Past Due' : (p.status === 'open' ? 'Due' : String(p.status || '')))));
+tr.appendChild(stTd);
+const act = el('td', 'bill-actions');
+const pay = safeUrl(p.hosted_invoice_url), pdf = safeUrl(p.invoice_pdf_url);
+if (p.status === 'open' && pay) { const a = el('a', 'btn bill-pay', 'Pay'); a.href = pay; a.target = '_blank'; a.rel = 'noopener'; act.appendChild(a); }
+if (pdf) { const a = el('a', 'bill-pdf', 'PDF'); a.href = pdf; a.target = '_blank'; a.rel = 'noopener'; act.appendChild(a); }
+tr.appendChild(act);
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+empty.hidden = true;
+}

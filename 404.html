@@ -12,112 +12,33 @@
 <meta name="theme-color" content="#071428">
 <meta name="robots" content="noindex, follow">
 <meta name="description" content="The page you were looking for could not be found.">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-body {
-margin: 0;
-font-family: 'Helvetica Neue', Arial, sans-serif;
-background-color: #030D1D;
-color: #D4AF37;
-line-height: 1.8;
-text-align: center;
-overflow-x: hidden;
-}
-@keyframes fadeInBody { from { opacity: 0; } to { opacity: 1; } }
-a { color: #D4AF37; text-decoration: none; transition: color 0.3s ease; }
-a:hover { text-decoration: underline; }
-
-.branch-bar { background: #030D1D; padding: 0.5rem 3rem; text-align: right; font-size: 0.8rem; border-bottom: 1px solid rgba(212, 175, 55, 0.15); }
-.branch-bar a { opacity: 0.75; }
-.branch-bar a:hover { opacity: 1; }
-
-header {
-background: #071428;
-padding: 1.2rem 3rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-position: sticky;
-top: 0;
-z-index: 1000;
-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-}
-header img { height: 70px; transition: transform 0.3s ease; }
-header img:hover { transform: scale(1.05); }
-nav a { margin-left: 2rem; font-weight: 500; font-size: 1.1rem; }
-nav a.active { border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
-
-main { min-height: 100vh; }
-
-.page-hero { padding: 70px 20px 20px 20px; max-width: 800px; margin: auto; }
-.page-hero h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: #D4AF37; font-weight: 500; margin: 0 0 1rem 0; }
-.page-hero p { font-size: 1.05rem; color: #E8E0C5; max-width: 650px; margin: 0 auto; }
-
-.booking-wrap {
-max-width: 900px;
-margin: 30px auto 20px auto;
-padding: 0 20px;
-}
-.calendly-inline-widget {
-min-width: 320px;
-height: 700px;
-background: #071428;
-border: 1px solid rgba(212, 175, 55, 0.25);
-}
-
-.alt-contact {
-max-width: 600px;
-margin: 20px auto 80px auto;
-padding: 30px 20px;
-}
-.alt-contact p {
-color: #8FA0C4;
-font-size: 0.9rem;
-}
-.alt-contact a {
-font-weight: 600;
-}
-
-footer { text-align: center; padding: 30px 15px; background: #071428; font-size: 0.6rem; color: #D4AF37; border-top: 1px solid rgba(255,255,255,0.05); }
-footer p { max-width: 950px; margin: 0.5rem auto; }
-
-@media(max-width: 768px) {
-header { flex-direction: column; align-items: center; padding: 1.2rem 1rem; }
-nav { margin-top: 0.8rem; }
-nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
-.branch-bar { text-align: center; padding: 0.5rem 1rem; }
-.page-hero h1 { font-size: 1.9rem; }
-.calendly-inline-widget { height: 850px; }
-}
-.eyebrow-404 { color: #8FA0C4 !important; font-size: 0.8rem !important; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px !important; }
-.links-404 { max-width: 760px; margin: 10px auto 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.link-card { display: block; text-align: left; background: #071428; border: 1px solid rgba(212,175,55,0.3); padding: 18px 20px; text-decoration: none !important; }
-.link-card:hover { border-color: #D4AF37; }
-.link-card strong { display: block; color: #D4AF37; font-size: 1rem; margin-bottom: 2px; }
-.link-card span { color: #E8E0C5; font-size: 0.85rem; }
-.note-404 { margin: 10px auto 80px auto; font-size: 0.9rem; }
-@media (max-width: 600px) { .links-404 { grid-template-columns: 1fr; } }
-</style>
+<link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css">
 <script src="/consent.js" defer></script>
 </head>
 <body class="branch-page has-mobile-cta">
+<a class="skip-link" href="#main">Skip to content</a>
 
 <div class="branch-bar">
 <a href="/index.html">&larr; Hansen Capital Management</a>
 </div>
 
-<header>
-<img src="/logo.png" alt="Hansen Capital Management Logo">
-<nav>
-<a href="/financial-services.html">Home</a>
-<a href="/services.html">Services</a>
-<a href="/contact2.html">Contact</a>
-<a href="/login.html">Client Login</a>
+<header class="site-header">
+<div class="hdr-inner">
+<a class="brand" href="/financial-services.html"><img src="/logo.png" alt="Hansen Capital Management home" width="800" height="250"></a>
+<nav class="site-nav" aria-label="Main">
+  <a href="/financial-services.html">Home</a>
+  <a href="/services.html">Services</a>
+  <a href="/contact2.html">Contact</a>
 </nav>
+<div class="hdr-actions">
+<a class="pill-outline" href="/login.html">Client Login</a>
+<a class="pill-gold" href="/contact2.html">Book a Call</a>
+</div>
+</div>
 </header>
 
-<main>
+<main id="main">
 <section class="page-hero">
 <p class="eyebrow-404">Error 404</p>
 <h1>We can&rsquo;t find that page</h1>
@@ -138,14 +59,39 @@ nav a { margin: 0 0.75rem; display: inline-block; font-size: 1rem; }
 </nav>
 
 <footer>
+<div class="ftr-inner ftr-grid">
+<div class="ftr-col ftr-about">
+<a class="ftr-brand" href="/financial-services.html"><img src="/logo.png" alt="Hansen Capital Management" width="800" height="250"></a>
+<p>Bookkeeping, tax, and analytics services are offered separately from investment
+management activities and do not constitute investment advice.</p>
+</div>
+<div class="ftr-col">
+<p class="ftr-head">Services</p>
+<a href="/services.html#bookkeeping">Bookkeeping &amp; Analytics</a>
+<a href="/services.html#catch-up">Catch-Up &amp; Cleanup</a>
+<a href="/services.html#tax">Tax</a>
+<a href="/login.html">Client Login</a>
+</div>
+<div class="ftr-col">
+<p class="ftr-head">Contact</p>
+<p>Hansen Capital Management LLC<br>Lincoln, Nebraska</p>
+<a href="tel:+15312079631">(531) 207-9631</a>
+<a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a>
+<p class="ftr-small">Serving Lincoln and Omaha, NE &mdash; and online businesses nationwide.</p>
+</div>
+<div class="ftr-col">
+<p class="ftr-head">Follow</p>
+<div class="soc-row">
+<a class="soc" href="https://www.linkedin.com/company/hansen-capital-management/" target="_blank" rel="noopener" aria-label="Hansen Capital Management on LinkedIn"><span class="soc-glyph">in</span></a>
+<a class="soc" href="https://www.instagram.com/hansencapitalmanagement/" target="_blank" rel="noopener" aria-label="Hansen Capital Management on Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none"></circle></svg></a>
+<a class="soc" href="https://www.facebook.com/profile.php?id=61595686162853" target="_blank" rel="noopener" aria-label="Hansen Capital Management on Facebook"><span class="soc-glyph">f</span></a>
+</div>
+</div>
+</div>
+<div class="ftr-inner ftr-base">
 <p>&copy; 2026 Hansen Capital Management LLC. All rights reserved.</p>
-<p>
-Bookkeeping, tax, and analytics services are offered separately from investment
-management activities and do not constitute investment advice.
-</p>
-<p>Hansen Capital Management LLC &middot; Lincoln, Nebraska &middot; <a href="tel:+15312079631">(531) 207-9631</a> &middot; <a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a></p>
-<p>Serving Lincoln and Omaha, NE &mdash; and online businesses nationwide.</p>
 <p class="legal-links"><a href="/privacy-policy.html">Privacy Policy</a> &middot; <a href="/terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
+</div>
 </footer>
 
 </body>

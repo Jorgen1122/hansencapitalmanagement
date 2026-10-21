@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com; form-action 'self'; base-uri 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com; form-action 'self'; base-uri 'self'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Dashboard | Hansen Capital Management</title>
@@ -14,149 +14,74 @@
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#071428">
 <meta name="robots" content="noindex, nofollow">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-body {
-margin: 0;
-font-family: 'Helvetica Neue', Arial, sans-serif;
-background-color: #030D1D;
-color: #D4AF37;
-line-height: 1.7;
-}
-a { color: #D4AF37; }
-.branch-bar { background: #030D1D; padding: 0.5rem 3rem; text-align: right; font-size: 0.8rem; border-bottom: 1px solid rgba(212, 175, 55, 0.15); }
-.branch-bar a { opacity: 0.75; }
-.branch-bar a:hover { opacity: 1; }
-header { background: #071428; padding: 1.2rem 3rem; display: flex; justify-content: space-between; align-items: center; }
-header img { height: 60px; }
-nav a { margin-left: 1.5rem; font-weight: 500; font-size: 0.95rem; }
-#logout-btn { background: none; border: 1px solid rgba(212,175,55,0.5); color: #D4AF37; padding: 6px 14px; cursor: pointer; font-size: 0.9rem; margin-left: 1.5rem; }
-main { max-width: 1150px; margin: 0 auto; padding: 40px 24px 80px 24px; }
-h1 { font-family: 'Playfair Display', serif; font-weight: 500; font-size: 1.9rem; margin-bottom: 4px; }
-#period-label { color: #E8E0C5; font-size: 0.95rem; margin-top: 0; }
-
-.badge { display: inline-block; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 2px; margin-left: 10px; vertical-align: middle; }
-.badge.paid { background: rgba(143, 203, 143, 0.15); color: #8FCB8F; }
-.badge.open { background: rgba(212, 175, 55, 0.15); color: #D4AF37; }
-.badge.overdue { background: rgba(231, 119, 119, 0.15); color: #E77; }
-
-.payment-box {
-background: #071428;
-border: 1px solid rgba(212, 175, 55, 0.3);
-padding: 20px 24px;
-margin: 20px 0 40px 0;
-text-align: left;
-display: flex;
-justify-content: space-between;
-align-items: center;
-flex-wrap: wrap;
-gap: 12px;
-}
-.payment-box .label { color: #8FA0C4; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
-.payment-box .amount { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: #D4AF37; }
-.payment-box .btn-pay {
-background: #D4AF37; color: #030D1D; font-weight: 600; padding: 10px 22px;
-border: none; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block;
-}
-
-.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin: 30px 0 40px 0; }
-.kpi-card { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 20px; text-align: left; }
-.kpi-card .label { color: #E8E0C5; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
-.kpi-card .value { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: #D4AF37; margin-top: 6px; }
-
-.section-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 500; color: #D4AF37; border-bottom: 1px solid rgba(212,175,55,0.25); padding-bottom: 10px; margin-top: 50px; }
-
-.chart-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 24px; margin-top: 20px; }
-.chart-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-.chart-tab {
-background: none; border: 1px solid rgba(212, 175, 55, 0.35); color: #D4AF37;
-padding: 6px 16px; font-size: 0.82rem; cursor: pointer;
-}
-.chart-tab.active { background: rgba(212, 175, 55, 0.15); }
-.view-tab {
-background: none; border: 1px solid rgba(212, 175, 55, 0.35); color: #D4AF37;
-padding: 6px 16px; font-size: 0.82rem; cursor: pointer;
-}
-.view-tab.active { background: #D4AF37; color: #030D1D; font-weight: 600; }
-.view-tabs { margin-bottom: 10px; }
-.chart-note { color: #8FA0C4; font-size: 0.82rem; margin-top: 12px; text-align: left; }
-.kpi-card .sub { color: #8FA0C4; font-size: 0.78rem; margin-top: 6px; }
-canvas { max-height: 320px; }
-
-.doc-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; }
-.doc-col-title { color: #8FA0C4; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; text-align: left; }
-.upload-box { background: #071428; border: 1px solid rgba(212, 175, 55, 0.25); padding: 22px; text-align: left; }
-.upload-box input[type="file"] { color: #E8E0C5; margin-bottom: 14px; display: block; }
-.btn { background: #D4AF37; color: #030D1D; font-weight: 600; padding: 10px 26px; border: none; cursor: pointer; font-size: 0.95rem; }
-.btn:disabled { opacity: 0.6; cursor: default; }
-table { width: 100%; border-collapse: collapse; margin-top: 16px; text-align: left; }
-th, td { padding: 9px 6px; border-bottom: 1px solid rgba(212,175,55,0.15); color: #E8E0C5; font-size: 0.85rem; }
-th { color: #D4AF37; font-weight: 600; }
-.category-tag { font-size: 0.7rem; color: #8FA0C4; text-transform: uppercase; }
-#status-msg { margin-top: 10px; font-size: 0.9rem; min-height: 1.2em; }
-#status-msg.error { color: #E77; }
-#status-msg.success { color: #8FCB8F; }
-#loading, .empty-note { text-align: center; color: #E8E0C5; padding: 20px; font-size: 0.9rem; }
-
-@media(max-width: 900px) {
-.kpi-grid { grid-template-columns: 1fr 1fr; }
-.doc-columns { grid-template-columns: 1fr; }
-}
-@media(max-width: 500px) {
-.kpi-grid { grid-template-columns: 1fr; }
-header { flex-direction: column; gap: 10px; padding: 1rem; }
-.branch-bar { text-align: center; padding: 0.5rem 1rem; }
-.doc-download-link { font-weight: 600; }
-}
-</style>
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <div class="branch-bar">
 <a href="index.html">&larr; Hansen Capital Management</a>
 </div>
 
-<header>
-<img src="logo.png" alt="Hansen Capital Management Logo">
-<nav>
-<a href="financial-services.html">Home</a>
-<button id="logout-btn">Log Out</button>
+<header class="site-header portal-header">
+<div class="hdr-inner">
+<a class="brand" href="financial-services.html"><img src="logo.png" alt="Hansen Capital Management home" width="800" height="250"></a>
+<nav class="site-nav portal-nav" aria-label="Dashboard">
+  <a href="#overview" class="active" aria-current="page">Overview</a>
+  <a href="#pnl">P&amp;L</a>
+  <a href="#cash">Cash</a>
+  <a href="#reports">Reports</a>
+  <a href="#billing">Billing</a>
+  <a href="#documents">Documents</a>
+  <a href="#security">Security</a>
 </nav>
+<div class="hdr-actions">
+<span class="sec-pill" id="sec-pill" hidden></span>
+<button id="logout-btn" class="pill-outline">Log Out</button>
+</div>
+</div>
 </header>
 
-<main>
+<main id="main" class="dash wide">
 <div id="loading" role="status"><span class="spinner" aria-hidden="true"></span>Loading your dashboard…</div>
 
 <div id="dashboard-content" style="display:none;">
-<h1 id="client-name">Welcome</h1>
-<p id="period-label"></p>
-
-<!-- PAYMENT STATUS -->
-<div class="payment-box" id="payment-box" style="display:none;">
+<div class="dash-head">
 <div>
-<div class="label">Current Invoice</div>
-<div class="amount" id="payment-amount">—</div>
+<p class="dash-kicker" id="period-label"></p>
+<h1 id="client-name">Welcome</h1>
 </div>
-<div id="payment-status-wrap"></div>
-<a href="#" id="pay-link" class="btn-pay" target="_blank" rel="noopener" style="display:none;">View &amp; Pay Invoice</a>
+<span class="status-pill" id="books-status" hidden></span>
 </div>
 
-<!-- CURRENT KPIs -->
+<div class="tab-panel" data-tab="overview">
 <div class="kpi-grid" id="kpi-grid"><div class="empty-note" role="status"><span class="spinner" aria-hidden="true"></span>Loading your figures…</div></div>
 <div id="no-kpi" class="empty-note" style="display:none;">
 No KPI data has been posted yet. Your numbers will appear here once your
 first month's books are closed.
 </div>
 
-<!-- TREND CHARTS -->
-<h2 class="section-title">Trends</h2>
-<div class="chart-box">
-<div class="chart-tabs view-tabs">
+<div class="dash-body">
+<div class="dash-main">
+
+<section class="panel chart-box" aria-labelledby="trends-title">
+<div class="panel-bar">
+<h2 class="panel-title" id="trends-title">Trends</h2>
+<div class="chart-controls">
+<div class="seg view-tabs" role="group" aria-label="View">
 <button class="view-tab active" data-view="monthly">Monthly</button>
 <button class="view-tab" data-view="ytd">Year-to-Date</button>
 </div>
-<div class="chart-tabs">
+<div class="seg range-tabs" role="group" aria-label="Range">
+<button class="range-tab" data-range="3">3M</button>
+<button class="range-tab" data-range="6">6M</button>
+<button class="range-tab active" data-range="13">12M</button>
+<button class="range-tab" data-range="36">All</button>
+</div>
+</div>
+</div>
+<div class="chart-tabs" role="group" aria-label="Metric">
 <button class="chart-tab active" data-metric="net_income_mtd">Net Income</button>
 <button class="chart-tab" data-metric="revenue_mtd">Revenue</button>
 <button class="chart-tab" data-metric="expenses_mtd">Expenses</button>
@@ -164,22 +89,101 @@ first month's books are closed.
 <button class="chart-tab" data-metric="net_margin">Net Margin</button>
 <button class="chart-tab" data-metric="cash">Cash Position</button>
 </div>
-<canvas id="trend-chart"></canvas>
+<div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
 <div id="chart-note" class="chart-note"></div>
 <div id="no-history" class="empty-note" style="display:none;">
 Not enough history yet to chart a trend — this fills in as more months close.
 </div>
+</section>
+
+</div>
+
+<aside class="dash-rail" aria-label="Account">
+<div class="panel payment-box" id="payment-box" style="display:none;">
+<div class="pay-top">
+<div class="label">Current Invoice</div>
+<div id="payment-status-wrap"></div>
+</div>
+<div class="amount" id="payment-amount">—</div>
+<a href="#" id="pay-link" class="btn-pay" target="_blank" rel="noopener" style="display:none;">View &amp; Pay Invoice</a>
+</div>
+
+<div class="panel rail-card">
+<p class="rail-label">Your books</p>
+<p class="rail-big" id="rail-closed">—</p>
+<p class="rail-note">Latest month closed and posted to this dashboard.</p>
+</div>
+
+<div class="panel rail-card">
+<p class="rail-label">Questions on your numbers?</p>
+<p class="rail-note">Book a review call or send us a note.</p>
+<a class="btn rail-btn" href="https://calendly.com/jorgen-hansencapitalmanagement/30min" target="_blank" rel="noopener">Book a call</a>
+<a class="rail-link" href="mailto:general@hansencapitalmanagement.com">Email us</a>
+</div>
+</aside>
+</div>
+</div>
+
+<!-- P&L -->
+<div class="tab-panel" data-tab="pnl" hidden>
+<section class="panel" aria-labelledby="pnl-title">
+<div class="panel-bar">
+<h2 class="panel-title" id="pnl-title">Income Statement</h2>
+<div class="seg" role="group" aria-label="Months shown">
+<button class="pnl-range active" data-months="6">6 months</button>
+<button class="pnl-range" data-months="12">12 months</button>
+</div>
+</div>
+<div class="table-scroll"><table class="fin-table" id="pnl-table"></table></div>
+<p class="panel-note">Monthly figures from your closed books. Cost of sales is derived from gross margin; operating expenses are the remaining expenses. Full statements are under Reports.</p>
+<p class="empty-note panel-empty" id="pnl-empty" hidden>Your income statement appears here once your first month's books are closed.</p>
+</section>
+</div>
+
+<!-- CASH -->
+<div class="tab-panel" data-tab="cash" hidden>
+<div class="kpi-grid cash-stats" id="cash-stats"></div>
+<section class="panel" aria-labelledby="cash-title">
+<div class="panel-bar"><h2 class="panel-title" id="cash-title">Cash Position</h2></div>
+<div class="chart-wrap"><canvas id="cash-chart"></canvas></div>
+<p class="panel-note">Line: cash balance at each month-end. Bars: change in cash during the month.</p>
+<div class="table-scroll"><table class="fin-table" id="cash-table"></table></div>
+<p class="empty-note panel-empty" id="cash-empty" hidden>Cash history appears here once your first month's books are closed.</p>
+</section>
+</div>
+
+<!-- REPORTS -->
+<div class="tab-panel" data-tab="reports" hidden>
+<section class="panel" aria-labelledby="rpt-title">
+<div class="panel-bar"><h2 class="panel-title" id="rpt-title">Reports</h2><a class="panel-link" href="#documents">All documents &rarr;</a></div>
+<div id="report-list" class="report-list"><p class="empty-note panel-empty"><span class="spinner" aria-hidden="true"></span>Loading reports…</p></div>
+</section>
+</div>
+
+<!-- BILLING -->
+<div class="tab-panel" data-tab="billing" hidden>
+<div class="kpi-grid billing-stats" id="billing-stats"></div>
+<section class="panel" aria-labelledby="bill-title">
+<div class="panel-bar"><h2 class="panel-title" id="bill-title">Invoices</h2></div>
+<div class="table-scroll"><table class="fin-table bill-table" id="billing-table"></table></div>
+<p class="empty-note panel-empty" id="billing-empty" hidden>No invoices yet.</p>
+<p class="panel-note">Payments are processed securely by Stripe. Questions about an invoice? Email <a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a>.</p>
+</section>
 </div>
 
 <!-- DOCUMENTS -->
-<h2 class="section-title">Documents</h2>
+<div class="tab-panel" data-tab="documents" hidden>
+<section class="panel" aria-labelledby="docs-title">
+<div class="panel-bar"><h2 class="panel-title" id="docs-title">Documents</h2></div>
 <div class="doc-columns">
 <div>
 <div class="doc-col-title">Documents We've Shared With You</div>
+<div class="table-scroll">
 <table id="firm-doc-table">
 <thead><tr><th>File</th><th>Category</th><th>Date</th><th></th></tr></thead>
 <tbody id="firm-doc-rows"><tr><td colspan="4" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
 </table>
+</div>
 <p id="no-firm-docs" class="empty-note" style="display:none;">Nothing shared yet.</p>
 </div>
 <div>
@@ -189,18 +193,22 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <button class="btn" id="upload-btn">Upload</button>
 <div id="status-msg"></div>
 </div>
+<div class="table-scroll">
 <table id="client-doc-table">
 <thead><tr><th>File</th><th>Uploaded</th><th>Status</th></tr></thead>
 <tbody id="client-doc-rows"><tr><td colspan="3" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
 </table>
+</div>
 <p id="no-client-docs" class="empty-note" style="display:none;">No documents uploaded yet.</p>
 </div>
 </div>
-
+</section>
 </div>
 
 <!-- ACCOUNT SECURITY -->
-<h2 class="section-title">Account Security</h2>
+<div class="tab-panel" data-tab="security" hidden>
+<section class="panel" aria-labelledby="sec-title">
+<div class="panel-bar"><h2 class="panel-title" id="sec-title">Account Security</h2></div>
 <div class="security-box">
 <p id="mfa-status" class="sec-status">Checking your security settings&hellip;</p>
 <button class="btn" id="mfa-enable-btn" hidden>Turn On Two-Step Verification</button>
@@ -219,10 +227,15 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <button class="btn-plain" id="mfa-disable-btn" hidden>Turn Off Two-Step Verification</button>
 <div id="mfa-msg" class="form-alert" role="alert" aria-live="polite"></div>
 </div>
+</section>
+</div>
+
 </div>
 </main>
 <footer>
+<div class="ftr-inner">
 <p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a></p>
+</div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>

@@ -25,210 +25,29 @@
 
 <link rel="icon" type="image/png" href="bitlogo.png"> 
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-
-<style>
-body {
-    margin: 0;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background-color: #030D1D;
-    color: #D4AF37;
-    line-height: 1.8;
-    text-align: center;
-    overflow-x: hidden;
-}
-
-@keyframes fadeInBody {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-a {
-    color: #D4AF37;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-header {
-    background: #071428;
-    padding: 1.2rem 3rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-}
-
-@keyframes slideDown {
-    to { transform: translateY(0); }
-}
-
-header img {
-    height: 70px;
-}
-
-nav a {
-    margin-left: 2rem;
-    font-weight: 500;
-    font-size: 1.1rem;
-}
-
-main {
-    max-width: 1100px;
-    margin: auto;
-    padding: 90px 20px;
-}
-
-.page-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 3rem;
-    font-weight: 500;
-    color: #D4AF37;
-    margin-bottom: 1rem;
-}
-
-.page-intro {
-    color: #E8E0C5;
-    font-size: 1.1rem;
-    max-width: 820px;
-    margin: 0 auto 70px auto;
-}
-
-.content-section {
-    margin-bottom: 55px;
-    text-align: left;
-    background: #071428;
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    padding: 42px;
-}
-
-.content-section h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    font-weight: 500;
-    color: #D4AF37;
-    margin-top: 0;
-    margin-bottom: 1.2rem;
-}
-
-.content-section p {
-    color: #E8E0C5;
-    font-size: 1.05rem;
-}
-
-form {
-    display: flex;
-    flex-direction: column;
-    margin-top: 25px;
-}
-
-input,
-textarea {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    background: #111;
-    color: #fff;
-    outline: none;
-}
-
-input:focus,
-textarea:focus {
-    background: #222;
-}
-
-input[type="submit"] {
-    background: #D4AF37;
-    color: #000;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-}
-
-.contact-note {
-    color: #E8E0C5;
-    font-size: 0.9rem;
-    margin-top: 20px;
-    opacity: 0.8;
-}
-
-footer {
-    text-align: center;
-    padding: 30px 15px;
-    background: #071428;
-    font-size: 0.9rem;
-    color: #D4AF37;
-    border-top: 1px solid rgba(255,255,255,0.05);
-}
-
-footer p {
-    max-width: 950px;
-    margin: 0.5rem auto;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@media(max-width: 768px) {
-    header {
-        flex-direction: column;
-        align-items: center;
-        padding: 1.2rem 1rem;
-    }
-
-    nav {
-        margin-top: 0.8rem;
-    }
-
-    nav a {
-        margin: 0 0.75rem;
-        display: inline-block;
-        font-size: 1rem;
-    }
-
-    .page-title {
-        font-size: 2.3rem;
-    }
-
-    main {
-        padding: 70px 18px;
-    }
-
-    .content-section {
-        padding: 30px 22px;
-        text-align: center;
-    }
-}
-</style>
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 <script src="consent.js" defer></script>
 </head>
 
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
-<header>
-    <img src="logo.png" alt="Hansen Capital Management Logo">  
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="about.html">About</a>
-        <a href="approach.html">Approach</a>
-        <a href="risk.html">Risk</a>
-        <a href="financial-services.html">Financial Services</a>
-        <a href="contact.html" class="active">Contact</a>
-    </nav>
+<header class="site-header">
+<div class="hdr-inner">
+<a class="brand" href="index.html"><img src="logo.png" alt="Hansen Capital Management home" width="800" height="250"></a>
+<nav class="site-nav" aria-label="Main">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="approach.html">Approach</a>
+  <a href="risk.html">Risk</a>
+  <a href="financial-services.html">Financial Services</a>
+  <a href="contact.html" class="active" aria-current="page">Contact</a>
+</nav>
+</div>
 </header>
 
-<main>
+<main id="main">
 
     <h1 class="page-title">Contact</h1>
 
@@ -242,15 +61,10 @@ footer p {
 
         <h2>Contact Information</h2>
 
-        <p>
-            <strong>Phone</strong><br>
-            531-207-9631
-        </p>
-
-        <p>
-            <strong>Email</strong><br>
-            general@hansencapitalmanagement.com
-        </p>
+        <dl class="contact-lines">
+            <div><dt>Phone</dt><dd><a href="tel:+15312079631">531-207-9631</a></dd></div>
+            <div><dt>Email</dt><dd><a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a></dd></div>
+        </dl>
 
     </section>
 
@@ -260,16 +74,24 @@ footer p {
 
         <form id="contact-form" action="https://formspree.io/f/mjkalavz" method="POST" novalidate>
 
-            <input type="text" id="cf-name" name="name" placeholder="Your Name" aria-label="Your name" autocomplete="name" required aria-describedby="cf-name-error">
+            <label class="form-label" for="cf-name">Name</label>
+
+            <input type="text" id="cf-name" name="name" aria-label="Your name" autocomplete="name" required aria-describedby="cf-name-error">
             <span class="field-error" id="cf-name-error"></span>
 
-            <input type="email" id="cf-email" name="email" placeholder="Your Email" aria-label="Your email" autocomplete="email" required aria-describedby="cf-email-error">
+            <label class="form-label" for="cf-email">Email</label>
+
+            <input type="email" id="cf-email" name="email" aria-label="Your email" autocomplete="email" required aria-describedby="cf-email-error">
             <span class="field-error" id="cf-email-error"></span>
 
-            <input type="tel" id="cf-phone" name="phone" placeholder="Phone Number (optional)" aria-label="Phone number (optional)" autocomplete="tel" aria-describedby="cf-phone-error">
+            <label class="form-label" for="cf-phone">Phone <span class="opt">(optional)</span></label>
+
+            <input type="tel" id="cf-phone" name="phone" aria-label="Phone number (optional)" autocomplete="tel" aria-describedby="cf-phone-error">
             <span class="field-error" id="cf-phone-error"></span>
 
-            <textarea id="cf-message" name="message" rows="6" placeholder="Your Message" aria-label="Your message" required aria-describedby="cf-message-error"></textarea>
+            <label class="form-label" for="cf-message">Message</label>
+
+            <textarea id="cf-message" name="message" rows="6" aria-label="Your message" required aria-describedby="cf-message-error"></textarea>
             <span class="field-error" id="cf-message-error"></span>
 
             <!-- spam trap: real visitors never see or fill this -->
@@ -337,7 +159,8 @@ footer p {
 </main>
 
 <footer>
-    <p>&copy; 2025 Hansen Capital Management LLC. All rights reserved.</p>
+<div class="ftr-inner">
+<p>&copy; 2025 Hansen Capital Management LLC. All rights reserved.</p>
 
     <p>
         The information on this website is provided for informational purposes only and does not constitute 
@@ -354,6 +177,7 @@ footer p {
         PAST PERFORMANCE IS NO GUARANTEE OF FUTURE RESULTS.
     </p>
 <p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a> &middot; <a href="#" data-cookie-settings>Cookie Settings</a></p>
+</div>
 </footer>
 
 </body>

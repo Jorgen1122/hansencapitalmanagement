@@ -1,0 +1,13 @@
+# Supabase CLI local state (project ids, connection info) - never publish
+supabase/.temp/
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local secrets, if ever created
+.env
+.env.*
+*.pem
+*.key
