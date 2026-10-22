@@ -518,7 +518,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   .hdr-inner { flex-wrap: wrap; gap: 10px 12px; padding-top: 12px; padding-bottom: 12px; min-height: 0; }
   .brand img { height: 38px; }
   .hdr-actions { margin-left: auto; }
-  .site-nav { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
+  .site-nav { order: 3; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
   .site-nav::-webkit-scrollbar { display: none; }
   .site-nav a { padding: 8px 14px; font-size: 0.86rem; }
 
@@ -552,6 +552,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
     display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000;
     background: var(--navy); border-top: 1px solid rgba(212, 175, 55, 0.3);
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 10px;
+    /* own compositing layer: stops the bar jittering while iOS / in-app browser toolbars resize on scroll */
+    transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden; backface-visibility: hidden; will-change: transform;
   }
   .mobile-cta a { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 8px; font-weight: 600; font-size: 0.95rem; text-decoration: none; border-radius: 999px; -webkit-tap-highlight-color: transparent; }
   .mobile-cta .mcta-primary { background: var(--gold); color: var(--navy); flex: 2; }
