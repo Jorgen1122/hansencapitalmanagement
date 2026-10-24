@@ -31,6 +31,7 @@
   <a href="#overview" class="active" aria-current="page">Overview</a>
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
+  <a href="#ledgers">Ledgers</a>
   <a href="#reports">Reports</a>
   <a href="#billing">Billing</a>
   <a href="#documents">Documents</a>
@@ -160,12 +161,96 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <!-- CASH -->
 <div class="tab-panel" data-tab="cash" hidden>
 <div class="kpi-grid cash-stats" id="cash-stats"></div>
+<section class="panel" id="flow-panel" aria-labelledby="flow-title" hidden>
+<div class="panel-bar">
+<h2 class="panel-title" id="flow-title">Where Your Money Went</h2>
+<label class="flow-pick">Month <select id="flow-month" aria-label="Month"></select></label>
+</div>
+<div class="flow-scroll"><div id="flow-chart" class="flow-chart" role="img" aria-labelledby="flow-title flow-summary"></div></div>
+<p class="panel-note" id="flow-summary"></p>
+</section>
 <section class="panel" aria-labelledby="cash-title">
 <div class="panel-bar"><h2 class="panel-title" id="cash-title">Cash Position</h2></div>
 <div class="chart-wrap"><canvas id="cash-chart"></canvas></div>
 <p class="panel-note">Line: cash balance at each month-end. Bars: change in cash during the month.</p>
 <div class="table-scroll"><table class="fin-table" id="cash-table"></table></div>
 <p class="empty-note panel-empty" id="cash-empty" hidden>Cash history appears here once your first month's books are closed.</p>
+</section>
+</div>
+
+<!-- LEDGERS -->
+<div class="tab-panel" data-tab="ledgers" hidden>
+<div class="seg led-nav" role="group" aria-label="Ledgers">
+<button class="led-tab active" data-led="jobs">Job Costing</button>
+<button class="led-tab" data-led="cash_in">Cash In</button>
+<button class="led-tab" data-led="cash_out">Cash Out</button>
+<button class="led-tab" data-led="check_in">Checks In</button>
+<button class="led-tab" data-led="check_out">Checks Out</button>
+</div>
+
+<section class="panel" id="jobs-view" aria-labelledby="jobs-title">
+<div class="panel-bar"><h2 class="panel-title" id="jobs-title">Job Costing</h2><button class="btn btn-sm" id="job-new-btn" type="button">+ New job</button></div>
+<form id="job-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label>Job name<input type="text" id="jf-name" maxlength="120" required placeholder="e.g. Smith deck rebuild / Weekly clean – Jones"></label>
+<label>Customer<input type="text" id="jf-customer" maxlength="120"></label>
+<label>Type<input type="text" id="jf-type" maxlength="60" placeholder="e.g. Remodel, Recurring clean"></label>
+<label>Start date<input type="date" id="jf-start" required></label>
+<label>End date<input type="date" id="jf-end"></label>
+<label>Quoted price<input type="text" id="jf-quote" inputmode="decimal" placeholder="0.00"></label>
+<label>Status<select id="jf-status"><option value="open">Open</option><option value="complete">Complete</option><option value="cancelled">Cancelled</option></select></label>
+<label class="span-2">Notes<input type="text" id="jf-notes" maxlength="1000"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="jf-save">Save job</button><button class="btn-plain" type="button" id="jf-cancel">Cancel</button></div>
+<div id="jf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+<div class="kpi-grid led-stats" id="job-stats"></div>
+<div class="table-scroll"><table class="fin-table led-table" id="job-table"></table></div>
+<p class="empty-note panel-empty" id="job-empty" hidden>No jobs yet. Add your first job, then tag your cash and check entries to it.</p>
+
+<div id="job-detail" class="job-detail" hidden>
+<div class="panel-bar"><h3 class="job-detail-title" id="jd-title">Job</h3><div class="led-actions"><button class="btn btn-sm" type="button" id="jd-time-btn">+ Log time &amp; miles</button><button class="btn-plain" type="button" id="jd-edit">Edit job</button><button class="btn-plain" type="button" id="jd-close">Close</button></div></div>
+<form id="time-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label>Date<input type="date" id="tf-date" required></label>
+<label>Worker<input type="text" id="tf-worker" maxlength="80" placeholder="You, or a helper's name"></label>
+<label>Hours<input type="text" id="tf-hours" inputmode="decimal" placeholder="0.0"></label>
+<label>Miles there<input type="text" id="tf-to" inputmode="decimal" placeholder="0"></label>
+<label>Miles back<input type="text" id="tf-back" inputmode="decimal" placeholder="0"></label>
+<label>Notes<input type="text" id="tf-notes" maxlength="500"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="tf-save">Save</button><button class="btn-plain" type="button" id="tf-cancel">Cancel</button></div>
+<div id="tf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+<div class="kpi-grid led-stats" id="jd-stats"></div>
+<div class="jd-cols">
+<div><p class="rail-label jd-label">Time &amp; miles</p><div class="table-scroll"><table class="fin-table led-table" id="jd-time"></table></div></div>
+<div><p class="rail-label jd-label">Money tagged to this job</p><div class="table-scroll"><table class="fin-table led-table" id="jd-money"></table></div></div>
+</div>
+</div>
+<p class="panel-note">Revenue and costs come from Cash and Check entries tagged to each job. Mileage is valued at the 2026 IRS rate of 72.5&cent; a mile for reference.</p>
+</section>
+
+<section class="panel" id="led-view" aria-labelledby="led-title" hidden>
+<div class="panel-bar"><h2 class="panel-title" id="led-title">Cash Out</h2><button class="btn btn-sm" id="led-new-btn" type="button">+ Add entry</button></div>
+<form id="led-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label>Date<input type="date" id="lf-date" required></label>
+<label>Amount<input type="text" id="lf-amount" inputmode="decimal" placeholder="0.00" required></label>
+<label><span id="lf-party-label">Paid to</span><input type="text" id="lf-party" maxlength="120"></label>
+<label id="lf-check-row">Check #<input type="text" id="lf-check" maxlength="20" inputmode="numeric"></label>
+<label>Category<select id="lf-category"></select></label>
+<label>Job<select id="lf-job"></select></label>
+<label class="span-2">Memo<input type="text" id="lf-memo" maxlength="500" placeholder="What was it for?"></label>
+<label class="span-2">Receipt or check photo<input type="file" id="lf-file" accept="image/*,application/pdf"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="lf-save">Submit</button><button class="btn-plain" type="button" id="lf-cancel">Cancel</button></div>
+<div id="lf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+<div class="kpi-grid led-stats" id="led-stats"></div>
+<div class="table-scroll"><table class="fin-table led-table" id="led-table"></table></div>
+<p class="empty-note panel-empty" id="led-empty" hidden>Nothing logged yet.</p>
+<p class="panel-note">Entries you add show as Submitted until we review and post them to your books. You can edit or delete an entry until it's posted. If we need something, it's marked Needs info with a note.</p>
 </section>
 </div>
 

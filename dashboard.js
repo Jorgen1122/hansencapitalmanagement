@@ -52,6 +52,8 @@ renderCashStats();
 await loadReports();
 await loadBilling();
 await loadExtras();
+await loadFlows();
+await loadLedgers();
 showTab(location.hash.slice(1));
 
 document.querySelectorAll('.chart-tab').forEach(tab => {
@@ -547,7 +549,7 @@ init().then(() => { if (currentClient) refreshMfa(); });
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['overview', 'pnl', 'cash', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['overview', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (!name) name = 'overview';
@@ -842,3 +844,477 @@ list.appendChild(li);
 document.getElementById('deadline-card').hidden = false;
 }
 }
+
+// ---------- Cash-flow Sankey (Cash tab) ----------
+// Rows come from public.cash_flow_lines: direction 'in' | 'out', category, optional subcategory, amount (>= 0).
+let flowRows = [];
+const FLOW_IN = '#6FA8C9', FLOW_CASH = '#D4AF37', FLOW_KEEP = '#6FD3A4', FLOW_DRAW = '#EE9273';
+const FLOW_OUT = ['#E6C55A', '#8FB3E0', '#B79CE6', '#E0A16F', '#7FC7C0', '#C9B06B', '#D98FA8', '#9FB86A', '#A9B3C2'];
+
+async function loadFlows() {
+const { data, error } = await supabaseClient
+.from('cash_flow_lines').select('period_end, direction, category, subcategory, amount, sort_order')
+.eq('client_id', currentClient.id).order('period_end', { ascending: false }).order('sort_order', { ascending: true }).limit(2000);
+if (error || !data || !data.length) return; // panel stays hidden
+flowRows = data;
+const periods = [...new Set(data.map(r => r.period_end))];
+const sel = document.getElementById('flow-month');
+sel.textContent = '';
+periods.forEach(p => { const o = el('option', null, fmtDate(p, { month: 'long', year: 'numeric' })); o.value = p; sel.appendChild(o); });
+sel.addEventListener('change', () => renderFlow(sel.value));
+document.getElementById('flow-panel').hidden = false;
+renderFlow(periods[0]);
+}
+
+function renderFlow(period) {
+const rows = flowRows.filter(r => r.period_end === period && Number(r.amount) > 0);
+const box = document.getElementById('flow-chart');
+box.textContent = '';
+const sum = (arr) => arr.reduce((a, r) => a + Number(r.amount), 0);
+const group = (arr, key) => { const m = new Map(); arr.forEach(r => { const k = (r[key] || '').trim(); if (!k) return; m.set(k, (m.get(k) || 0) + Number(r.amount)); }); return [...m].map(([name, value]) => ({ name, value })); };
+
+const ins = group(rows.filter(r => r.direction === 'in'), 'category').sort((a, b) => b.value - a.value);
+const outs = group(rows.filter(r => r.direction === 'out'), 'category').sort((a, b) => b.value - a.value);
+const totIn = sum(rows.filter(r => r.direction === 'in')), totOut = sum(rows.filter(r => r.direction === 'out'));
+if (totOut > totIn + 0.005) ins.push({ name: 'From cash on hand', value: totOut - totIn, draw: true });
+if (totIn > totOut + 0.005) outs.push({ name: 'Added to cash', value: totIn - totOut, keep: true });
+const total = Math.max(totIn, totOut);
+if (!total) { box.appendChild(el('p', 'empty-note panel-empty', 'No cash activity recorded for this month.')); return; }
+
+// Optional 4th column: subcategories of each outflow category
+const subs = [];
+outs.forEach((o, i) => {
+o.color = o.keep ? FLOW_KEEP : FLOW_OUT[i % FLOW_OUT.length];
+if (o.keep) return;
+const parts = group(rows.filter(r => r.direction === 'out' && (r.category || '').trim() === o.name), 'subcategory');
+if (parts.length) {
+const covered = parts.reduce((a, p) => a + p.value, 0);
+if (o.value - covered > 0.005) parts.push({ name: 'Other', value: o.value - covered });
+parts.sort((a, b) => b.value - a.value).forEach(p => subs.push({ ...p, parent: o, color: o.color }));
+}
+});
+const cols = subs.length ? 4 : 3;
+
+// Layout (viewBox units)
+const W = 1000, PAD_T = 10, NODE_W = 14, GAP = 14, SLOT = 42; // SLOT: room for a two-line label
+const xs = cols === 4 ? [0, 300, 590, 986] : [0, 430, 986];
+const k = 300 / total; // the busiest column is ~300 units of flow; small items get label room via SLOT
+const place = (nodes, x) => { let y = 0; nodes.forEach(n => { n.x = x; n.h = Math.max(2, n.value * k); n.y = y; y += Math.max(n.h, SLOT) + GAP; }); return y - GAP; };
+const hIn = place(ins, xs[0]), hOut = place(outs, xs[2]), hSub = subs.length ? place(subs, xs[3]) : 0;
+const cash = { name: 'Cash in', value: total, x: xs[1], h: total * k };
+const H = Math.max(hIn, hOut, hSub, cash.h) + PAD_T * 2;
+const centre = (nodes, h) => { const off = (H - h) / 2; nodes.forEach(n => n.y += off); };
+centre(ins, hIn); centre(outs, hOut); if (subs.length) centre(subs, hSub);
+cash.y = (H - cash.h) / 2;
+
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.createElementNS(NS, 'svg');
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', '100%'); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+svg.setAttribute('aria-hidden', 'true');
+const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); Object.entries(attrs).forEach(([a, v]) => e.setAttribute(a, String(v))); return e; };
+const link = (x0, y0, x1, y1, h, color) => {
+const xm = (x0 + x1) / 2;
+const d = `M${x0},${y0} C${xm},${y0} ${xm},${y1} ${x1},${y1} L${x1},${y1 + h} C${xm},${y1 + h} ${xm},${y0 + h} ${x0},${y0 + h} Z`;
+svg.appendChild(mk('path', { d, fill: color, 'fill-opacity': 0.28 }));
+};
+// links: inflows -> cash
+let cy = cash.y;
+ins.forEach(n => { const c = n.draw ? FLOW_DRAW : FLOW_IN; link(n.x + NODE_W, n.y, cash.x, cy, n.h, c); cy += n.h; });
+// cash -> outflows
+cy = cash.y;
+outs.forEach(n => { link(cash.x + NODE_W, cy, n.x, n.y, n.h, n.color); cy += n.h; });
+// outflow category -> subcategories
+const offs = new Map();
+subs.forEach(sn => { const p = sn.parent; const o = offs.get(p) || 0; link(p.x + NODE_W, p.y + o, sn.x, sn.y, sn.h, sn.color); offs.set(p, o + sn.h); });
+
+// nodes + labels
+const label = (n, side, color) => {
+svg.appendChild(mk('rect', { x: n.x, y: n.y, width: NODE_W, height: n.h, rx: 2, fill: color }));
+const tx = side === 'left' ? n.x - 10 : n.x + NODE_W + 10;
+const anchor = side === 'left' ? 'end' : 'start';
+const mid = n.y + n.h / 2;
+const t1 = mk('text', { x: tx, y: mid - 3, 'text-anchor': anchor, class: 'flow-name' }); t1.textContent = n.name;
+const t2 = mk('text', { x: tx, y: mid + 15, 'text-anchor': anchor, class: 'flow-amt' }); t2.textContent = money(n.value, { cents: true });
+svg.append(t1, t2);
+};
+ins.forEach(n => label(n, 'right', n.draw ? FLOW_DRAW : FLOW_IN));
+label(cash, 'right', FLOW_CASH);
+outs.forEach(n => label(n, 'left', n.color));
+subs.forEach(n => label(n, 'left', n.color));
+box.appendChild(svg);
+
+// accessible text summary
+const top = outs.filter(o => !o.keep).slice(0, 3).map(o => `${o.name} ${money(o.value)}`).join(', ');
+const net = totIn - totOut;
+document.getElementById('flow-summary').textContent =
+`${fmtDate(period, { month: 'long', year: 'numeric' })}: ${money(totIn)} came in and ${money(totOut)} went out` +
+(top ? ` (largest: ${top})` : '') + `. Cash ${net >= 0 ? 'grew' : 'fell'} by ${money(Math.abs(net))}.`;
+}
+
+// =====================================================================
+// Ledgers: Job Costing, Cash In, Cash Out, Checks In, Checks Out
+// Clients submit; HCM posts. RLS blocks clients from posting, editing posted rows,
+// writing HCM notes, or touching another client's data. Rendering uses textContent only.
+// =====================================================================
+const LED_KINDS = {
+cash_in: { title: 'Cash In', party: 'Received from', check: false, dir: 'in' },
+cash_out: { title: 'Cash Out', party: 'Paid to', check: false, dir: 'out' },
+check_in: { title: 'Checks In', party: 'Received from', check: true, dir: 'in' },
+check_out: { title: 'Checks Out', party: 'Paid to', check: true, dir: 'out' },
+};
+const CATS_IN = ['Customer payment', 'Deposit / retainer', 'Owner contribution', 'Loan', 'Refund', 'Other'];
+const CATS_OUT = ['Materials & supplies', 'Subcontract labor', 'Wages / helpers', 'Fuel & vehicle', 'Equipment & tools', 'Rent & utilities', 'Insurance', 'Software & subscriptions', 'Taxes', 'Owner draw', 'Other'];
+const LABOR_CATS = ['Subcontract labor', 'Wages / helpers'];
+const MATERIAL_CATS = ['Materials & supplies'];
+const MILE_RATE = 0.725; // IRS 2026 business standard mileage rate
+let ledJobs = [], ledEntries = [], ledTime = [], ledView = 'jobs', ledEditId = null, jobEditId = null, openJobId = null;
+
+const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const num = (v) => { const n = Number(String(v || '').replace(/[$,\s]/g, '')); return isFinite(n) ? n : NaN; };
+const ledDate = (d) => fmtDate(d, { month: 'short', day: 'numeric', year: 'numeric' });
+const jobName = (id) => { const j = ledJobs.find(x => x.id === id); return j ? j.name : ''; };
+const dirOf = (kind) => LED_KINDS[kind].dir;
+function statusBadge(st) {
+const map = { submitted: ['open', 'Submitted'], needs_info: ['overdue', 'Needs info'], posted: ['paid', 'Posted'] };
+const [c, t] = map[st] || ['open', st];
+return el('span', 'badge ' + c, t);
+}
+function th(row, labels) { labels.forEach(([t, cls]) => { const h = el('th', cls || null, t); h.scope = 'col'; row.appendChild(h); }); }
+
+async function loadLedgers() {
+const cid = currentClient.id;
+const [j, e, t] = await Promise.all([
+supabaseClient.from('jobs').select('*').eq('client_id', cid).order('start_date', { ascending: false }).limit(500),
+supabaseClient.from('ledger_entries').select('*').eq('client_id', cid).order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(3000),
+supabaseClient.from('job_time').select('*').eq('client_id', cid).order('work_date', { ascending: false }).limit(5000),
+]);
+ledJobs = (!j.error && j.data) || []; ledEntries = (!e.error && e.data) || []; ledTime = (!t.error && t.data) || [];
+renderLedgers();
+}
+
+function renderLedgers() {
+document.querySelectorAll('.led-tab').forEach(b => b.classList.toggle('active', b.dataset.led === ledView));
+document.getElementById('jobs-view').hidden = ledView !== 'jobs';
+document.getElementById('led-view').hidden = ledView === 'jobs';
+if (ledView === 'jobs') renderJobs(); else renderLedger(ledView);
+}
+document.querySelectorAll('.led-tab').forEach(b => b.addEventListener('click', () => {
+ledView = b.dataset.led; closeLedForm(); renderLedgers();
+}));
+
+// ---------- one ledger (cash/check in/out) ----------
+function renderLedger(kind) {
+const meta = LED_KINDS[kind];
+document.getElementById('led-title').textContent = meta.title;
+const rows = ledEntries.filter(r => r.kind === kind);
+const now = new Date(); const ym = todayISO().slice(0, 7); const yr = String(now.getFullYear());
+const sumIf = (fn) => rows.filter(fn).reduce((a, r) => a + Number(r.amount), 0);
+statCards('led-stats', [
+['This month', money(sumIf(r => r.entry_date.slice(0, 7) === ym), { cents: true }), (n => `${n} ${n === 1 ? 'entry' : 'entries'}`)(rows.filter(r => r.entry_date.slice(0, 7) === ym).length)],
+[`${yr} to date`, money(sumIf(r => r.entry_date.slice(0, 4) === yr), { cents: true }), ''],
+['Waiting on review', String(rows.filter(r => r.status === 'submitted').length), rows.some(r => r.status === 'needs_info') ? `${rows.filter(r => r.status === 'needs_info').length} need info from you` : ''],
+]);
+const table = document.getElementById('led-table'), empty = document.getElementById('led-empty');
+table.textContent = '';
+if (!rows.length) { empty.hidden = false; return; }
+empty.hidden = true;
+const thead = el('thead'), hr = el('tr');
+th(hr, [['Date'], [meta.party], ['Category'], ['Job'], ['Memo'], ['Amount', 'r'], ['Receipt'], ['Status'], ['']]);
+thead.appendChild(hr);
+const tbody = el('tbody');
+rows.forEach(r => {
+const tr = el('tr', r.status === 'needs_info' ? 'row-flag' : null);
+tr.appendChild(el('td', null, ledDate(r.entry_date)));
+const party = el('td', null, r.party || '—');
+if (r.check_number) party.appendChild(el('span', 'led-sub', ` #${r.check_number}`));
+tr.appendChild(party);
+tr.appendChild(el('td', null, r.category || '—'));
+tr.appendChild(el('td', null, jobName(r.job_id) || '—'));
+const memo = el('td', 'led-memo', r.memo || '');
+if (r.status === 'needs_info' && r.hcm_note) memo.appendChild(el('span', 'led-note', `HCM: ${r.hcm_note}`));
+tr.appendChild(memo);
+tr.appendChild(el('td', 'r', money(r.amount, { cents: true })));
+const rc = el('td');
+if (r.receipt_path) { const a = el('a', 'led-link', 'View'); a.href = '#'; a.addEventListener('click', (e) => { e.preventDefault(); signedOpen(r.receipt_path, a); }); rc.appendChild(a); } else rc.textContent = '—';
+tr.appendChild(rc);
+const st = el('td'); st.appendChild(statusBadge(r.status)); tr.appendChild(st);
+const act = el('td', 'led-act');
+if (r.status !== 'posted') {
+const eb = el('button', 'led-btn', 'Edit'); eb.type = 'button'; eb.addEventListener('click', () => openLedForm(kind, r));
+const db = el('button', 'led-btn danger', 'Delete'); db.type = 'button'; db.addEventListener('click', () => deleteEntry(r, db));
+act.append(eb, db);
+}
+tr.appendChild(act);
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+}
+
+function fillSelect(sel, options, value, blankLabel) {
+sel.textContent = '';
+if (blankLabel != null) { const o = el('option', null, blankLabel); o.value = ''; sel.appendChild(o); }
+options.forEach(([v, t]) => { const o = el('option', null, t); o.value = v; sel.appendChild(o); });
+sel.value = value || '';
+}
+function openLedForm(kind, row) {
+const meta = LED_KINDS[kind];
+ledEditId = row ? row.id : null;
+document.getElementById('lf-party-label').textContent = meta.party;
+document.getElementById('lf-check-row').hidden = !meta.check;
+fillSelect(document.getElementById('lf-category'), (meta.dir === 'in' ? CATS_IN : CATS_OUT).map(c => [c, c]), row ? row.category : '', 'Choose…');
+fillSelect(document.getElementById('lf-job'), ledJobs.filter(j => j.status !== 'cancelled' || (row && row.job_id === j.id)).map(j => [j.id, j.name]), row ? row.job_id : '', 'No job');
+document.getElementById('lf-date').value = row ? row.entry_date : todayISO();
+document.getElementById('lf-amount').value = row ? Number(row.amount).toFixed(2) : '';
+document.getElementById('lf-party').value = row ? (row.party || '') : '';
+document.getElementById('lf-check').value = row ? (row.check_number || '') : '';
+document.getElementById('lf-memo').value = row ? (row.memo || '') : '';
+document.getElementById('lf-file').value = '';
+document.getElementById('lf-save').textContent = row ? 'Save changes' : 'Submit';
+setAlert('lf-msg', '');
+document.getElementById('led-form').hidden = false;
+document.getElementById('lf-amount').focus();
+}
+function closeLedForm() { ledEditId = null; const f = document.getElementById('led-form'); if (f) f.hidden = true; }
+document.getElementById('led-new-btn').addEventListener('click', () => openLedForm(ledView, null));
+document.getElementById('lf-cancel').addEventListener('click', closeLedForm);
+
+async function uploadReceipt(file) {
+if (!ALLOWED_TYPES.includes(file.type)) throw new Error('That file type isn’t accepted. Use a photo (JPG, PNG, HEIC) or a PDF.');
+if (file.size > MAX_FILE_BYTES) throw new Error('That file is over the 25 MB limit.');
+const path = `${currentClient.id}/receipts/${Date.now()}_${sanitizeFilename(file.name)}`;
+const { error } = await supabaseClient.storage.from(DOCS_BUCKET).upload(path, file);
+if (error) throw error;
+return path;
+}
+
+document.getElementById('led-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const kind = ledView, meta = LED_KINDS[kind];
+const amount = num(document.getElementById('lf-amount').value);
+const date = document.getElementById('lf-date').value;
+const btn = document.getElementById('lf-save');
+setAlert('lf-msg', '');
+if (!date) { setAlert('lf-msg', 'Enter the date.', 'error'); return; }
+if (!(amount > 0)) { setAlert('lf-msg', 'Enter an amount greater than zero.', 'error'); return; }
+const rec = {
+kind, entry_date: date, amount: Math.round(amount * 100) / 100,
+party: document.getElementById('lf-party').value.trim() || null,
+check_number: meta.check ? (document.getElementById('lf-check').value.trim() || null) : null,
+category: document.getElementById('lf-category').value || null,
+job_id: document.getElementById('lf-job').value || null,
+memo: document.getElementById('lf-memo').value.trim() || null,
+status: 'submitted',
+};
+const label = btn.textContent;
+setBusy(btn, true, 'Saving…');
+try {
+const file = document.getElementById('lf-file').files[0];
+if (file) rec.receipt_path = await uploadReceipt(file);
+const q = ledEditId
+? supabaseClient.from('ledger_entries').update(rec).eq('id', ledEditId)
+: supabaseClient.from('ledger_entries').insert(Object.assign({ client_id: currentClient.id }, rec));
+const { error } = await q;
+if (error) throw error;
+closeLedForm();
+await loadLedgers();
+} catch (err) {
+setAlert('lf-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err.message : friendlyError(err), 'error');
+} finally { setBusy(btn, false, label); }
+});
+
+async function deleteEntry(r, btn) {
+if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Delete'; }, 4000); return; }
+btn.disabled = true;
+const { error } = await supabaseClient.from('ledger_entries').delete().eq('id', r.id);
+if (error) { btn.disabled = false; btn.textContent = 'Error'; return; }
+await loadLedgers();
+}
+
+// ---------- job costing ----------
+function jobRollup(j) {
+const money_ = ledEntries.filter(r => r.job_id === j.id);
+const rev = money_.filter(r => dirOf(r.kind) === 'in').reduce((a, r) => a + Number(r.amount), 0);
+const outs = money_.filter(r => dirOf(r.kind) === 'out');
+const cost = outs.reduce((a, r) => a + Number(r.amount), 0);
+const mat = outs.filter(r => MATERIAL_CATS.includes(r.category)).reduce((a, r) => a + Number(r.amount), 0);
+const lab = outs.filter(r => LABOR_CATS.includes(r.category)).reduce((a, r) => a + Number(r.amount), 0);
+const time = ledTime.filter(t => t.job_id === j.id);
+const hours = time.reduce((a, t) => a + Number(t.hours), 0);
+const miles = time.reduce((a, t) => a + Number(t.miles_to) + Number(t.miles_back), 0);
+const mileCost = miles * MILE_RATE;
+const profit = rev - cost - mileCost;
+return { rev, cost, mat, lab, other: cost - mat - lab, hours, miles, mileCost, profit, margin: rev ? profit / rev : null, perHour: hours ? profit / hours : null, entries: money_, time };
+}
+
+function renderJobs() {
+const table = document.getElementById('job-table'), empty = document.getElementById('job-empty');
+table.textContent = '';
+const rolls = ledJobs.map(j => ({ j, r: jobRollup(j) }));
+const done = rolls.filter(x => x.j.status !== 'cancelled');
+const rev = done.reduce((a, x) => a + x.r.rev, 0), prof = done.reduce((a, x) => a + x.r.profit, 0);
+const hrs = done.reduce((a, x) => a + x.r.hours, 0), mi = done.reduce((a, x) => a + x.r.miles, 0);
+statCards('job-stats', ledJobs.length ? [
+['Open jobs', String(ledJobs.filter(j => j.status === 'open').length), `${ledJobs.length} total`],
+['Job profit', money(prof), rev ? `${pctTxt(prof / rev)} margin` : ''],
+['Profit per hour', hrs ? money(prof / hrs, { cents: true }) : '—', `${hrs.toFixed(1)} hours logged`],
+['Miles driven', mi.toFixed(0), `≈ ${money(mi * MILE_RATE)} at IRS rate`],
+] : []);
+if (!ledJobs.length) { empty.hidden = false; document.getElementById('job-detail').hidden = true; return; }
+empty.hidden = true;
+const thead = el('thead'), hr = el('tr');
+th(hr, [['Job'], ['Customer'], ['Status'], ['Revenue', 'r'], ['Materials', 'r'], ['Labor', 'r'], ['Other', 'r'], ['Mileage', 'r'], ['Profit', 'r'], ['Margin', 'r'], ['Hours', 'r'], ['$/hour', 'r']]);
+thead.appendChild(hr);
+const tbody = el('tbody');
+rolls.forEach(({ j, r }) => {
+const tr = el('tr', 'job-row' + (openJobId === j.id ? ' is-open' : ''));
+tr.tabIndex = 0;
+const name = el('td'); const b = el('button', 'job-open', j.name); b.type = 'button'; b.addEventListener('click', () => openJob(j.id)); name.appendChild(b);
+if (j.quoted_amount != null) name.appendChild(el('span', 'led-sub', ` Quoted ${money(j.quoted_amount)}`));
+tr.appendChild(name);
+tr.appendChild(el('td', null, j.customer || '—'));
+const st = el('td'); st.appendChild(el('span', 'badge ' + (j.status === 'complete' ? 'paid' : (j.status === 'cancelled' ? 'overdue' : 'open')), j.status[0].toUpperCase() + j.status.slice(1))); tr.appendChild(st);
+[[r.rev], [r.mat], [r.lab], [r.other], [r.mileCost]].forEach(([v]) => tr.appendChild(el('td', 'r', money(v))));
+tr.appendChild(el('td', 'r ' + (r.profit < 0 ? 'neg' : ''), money(r.profit)));
+tr.appendChild(el('td', 'r', pctTxt(r.margin)));
+tr.appendChild(el('td', 'r', r.hours ? r.hours.toFixed(1) : '—'));
+tr.appendChild(el('td', 'r', r.perHour == null ? '—' : money(r.perHour, { cents: true })));
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+if (openJobId) renderJobDetail();
+}
+
+function openJob(id) { openJobId = id; document.getElementById('time-form').hidden = true; renderJobs(); document.getElementById('job-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+document.getElementById('jd-close').addEventListener('click', () => { openJobId = null; document.getElementById('job-detail').hidden = true; renderJobs(); });
+
+function renderJobDetail() {
+const j = ledJobs.find(x => x.id === openJobId);
+const box = document.getElementById('job-detail');
+if (!j) { box.hidden = true; return; }
+const r = jobRollup(j);
+document.getElementById('jd-title').textContent = j.name + (j.customer ? ` · ${j.customer}` : '');
+statCards('jd-stats', [
+['Revenue', money(r.rev, { cents: true }), j.quoted_amount != null ? `Quoted ${money(j.quoted_amount, { cents: true })}` : ''],
+['Costs', money(r.cost + r.mileCost, { cents: true }), `incl. ${money(r.mileCost)} mileage`],
+['Profit', money(r.profit, { cents: true }), r.margin == null ? '' : `${pctTxt(r.margin)} margin`],
+['Hours · miles', `${r.hours.toFixed(1)} h · ${r.miles.toFixed(0)} mi`, r.perHour == null ? '' : `${money(r.perHour, { cents: true })} profit per hour`],
+]);
+const tt = document.getElementById('jd-time'); tt.textContent = '';
+if (r.time.length) {
+const h = el('thead'), hr = el('tr'); th(hr, [['Date'], ['Worker'], ['Hours', 'r'], ['Miles', 'r'], ['Notes'], ['']]); h.appendChild(hr);
+const tb = el('tbody');
+r.time.forEach(t => {
+const tr = el('tr');
+tr.appendChild(el('td', null, ledDate(t.work_date)));
+tr.appendChild(el('td', null, t.worker || '—'));
+tr.appendChild(el('td', 'r', Number(t.hours).toFixed(2)));
+tr.appendChild(el('td', 'r', `${Number(t.miles_to)} + ${Number(t.miles_back)}`));
+tr.appendChild(el('td', 'led-memo', t.notes || ''));
+const act = el('td', 'led-act'); const db = el('button', 'led-btn danger', 'Delete'); db.type = 'button';
+db.addEventListener('click', async () => {
+if (db.dataset.armed !== '1') { db.dataset.armed = '1'; db.textContent = 'Confirm'; setTimeout(() => { db.dataset.armed = ''; db.textContent = 'Delete'; }, 4000); return; }
+db.disabled = true; const { error } = await supabaseClient.from('job_time').delete().eq('id', t.id); if (error) { db.textContent = 'Error'; return; } await loadLedgers();
+});
+act.appendChild(db); tr.appendChild(act); tb.appendChild(tr);
+});
+tt.append(h, tb);
+} else { const tb = el('tbody'); const tr = el('tr'); const td = el('td', 'empty-note', 'No time logged yet.'); td.colSpan = 6; tr.appendChild(td); tb.appendChild(tr); tt.appendChild(tb); }
+const mt = document.getElementById('jd-money'); mt.textContent = '';
+if (r.entries.length) {
+const h = el('thead'), hr = el('tr'); th(hr, [['Date'], ['Type'], ['Category'], ['Amount', 'r'], ['Status']]); h.appendChild(hr);
+const tb = el('tbody');
+r.entries.forEach(x => {
+const tr = el('tr');
+tr.appendChild(el('td', null, ledDate(x.entry_date)));
+tr.appendChild(el('td', null, LED_KINDS[x.kind].title));
+tr.appendChild(el('td', null, x.category || '—'));
+tr.appendChild(el('td', 'r ' + (dirOf(x.kind) === 'out' ? 'neg' : 'pos'), (dirOf(x.kind) === 'out' ? '−' : '+') + money(x.amount, { cents: true })));
+const st = el('td'); st.appendChild(statusBadge(x.status)); tr.appendChild(st);
+tb.appendChild(tr);
+});
+mt.append(h, tb);
+} else { const tb = el('tbody'); const tr = el('tr'); const td = el('td', 'empty-note', 'Nothing tagged yet. Pick this job when you add a cash or check entry.'); td.colSpan = 5; tr.appendChild(td); tb.appendChild(tr); mt.appendChild(tb); }
+box.hidden = false;
+}
+
+// job form
+function openJobForm(job) {
+jobEditId = job ? job.id : null;
+document.getElementById('jf-name').value = job ? job.name : '';
+document.getElementById('jf-customer').value = job ? (job.customer || '') : '';
+document.getElementById('jf-type').value = job ? (job.job_type || '') : '';
+document.getElementById('jf-start').value = job ? job.start_date : todayISO();
+document.getElementById('jf-end').value = job ? (job.end_date || '') : '';
+document.getElementById('jf-quote').value = job && job.quoted_amount != null ? Number(job.quoted_amount).toFixed(2) : '';
+document.getElementById('jf-status').value = job ? job.status : 'open';
+document.getElementById('jf-notes').value = job ? (job.notes || '') : '';
+document.getElementById('jf-save').textContent = job ? 'Save changes' : 'Save job';
+setAlert('jf-msg', '');
+document.getElementById('job-form').hidden = false;
+document.getElementById('jf-name').focus();
+}
+document.getElementById('job-new-btn').addEventListener('click', () => openJobForm(null));
+document.getElementById('jd-edit').addEventListener('click', () => { const j = ledJobs.find(x => x.id === openJobId); if (j) { openJobForm(j); document.getElementById('job-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });
+document.getElementById('jf-cancel').addEventListener('click', () => { jobEditId = null; document.getElementById('job-form').hidden = true; });
+document.getElementById('job-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const name = document.getElementById('jf-name').value.trim();
+const start = document.getElementById('jf-start').value;
+const qRaw = document.getElementById('jf-quote').value.trim();
+const quote = qRaw ? num(qRaw) : null;
+setAlert('jf-msg', '');
+if (!name) { setAlert('jf-msg', 'Give the job a name.', 'error'); return; }
+if (!start) { setAlert('jf-msg', 'Enter a start date.', 'error'); return; }
+if (qRaw && !(quote >= 0)) { setAlert('jf-msg', 'Quoted price must be a number.', 'error'); return; }
+const rec = {
+name, customer: document.getElementById('jf-customer').value.trim() || null,
+job_type: document.getElementById('jf-type').value.trim() || null,
+start_date: start, end_date: document.getElementById('jf-end').value || null,
+quoted_amount: quote, status: document.getElementById('jf-status').value,
+notes: document.getElementById('jf-notes').value.trim() || null,
+};
+const btn = document.getElementById('jf-save'), label = btn.textContent;
+setBusy(btn, true, 'Saving…');
+try {
+const q = jobEditId ? supabaseClient.from('jobs').update(rec).eq('id', jobEditId) : supabaseClient.from('jobs').insert(Object.assign({ client_id: currentClient.id }, rec));
+const { error } = await q; if (error) throw error;
+jobEditId = null; document.getElementById('job-form').hidden = true;
+await loadLedgers();
+} catch (err) { setAlert('jf-msg', friendlyError(err), 'error'); }
+finally { setBusy(btn, false, label); }
+});
+
+// time & miles form
+document.getElementById('jd-time-btn').addEventListener('click', () => {
+['tf-worker', 'tf-hours', 'tf-to', 'tf-back', 'tf-notes'].forEach(id => { document.getElementById(id).value = ''; });
+document.getElementById('tf-date').value = todayISO();
+setAlert('tf-msg', '');
+document.getElementById('time-form').hidden = false;
+document.getElementById('tf-hours').focus();
+});
+document.getElementById('tf-cancel').addEventListener('click', () => { document.getElementById('time-form').hidden = true; });
+document.getElementById('time-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const hours = num(document.getElementById('tf-hours').value || 0);
+const to = num(document.getElementById('tf-to').value || 0), back = num(document.getElementById('tf-back').value || 0);
+const date = document.getElementById('tf-date').value;
+setAlert('tf-msg', '');
+if (!date) { setAlert('tf-msg', 'Enter the date.', 'error'); return; }
+if (!(hours >= 0 && hours <= 24)) { setAlert('tf-msg', 'Hours must be between 0 and 24.', 'error'); return; }
+if (!(to >= 0) || !(back >= 0)) { setAlert('tf-msg', 'Miles must be numbers.', 'error'); return; }
+if (!hours && !to && !back) { setAlert('tf-msg', 'Enter hours, miles, or both.', 'error'); return; }
+const btn = document.getElementById('tf-save'), label = btn.textContent;
+setBusy(btn, true, 'Saving…');
+try {
+const { error } = await supabaseClient.from('job_time').insert({
+client_id: currentClient.id, job_id: openJobId, work_date: date,
+worker: document.getElementById('tf-worker').value.trim() || null,
+hours: Math.round(hours * 100) / 100, miles_to: Math.round(to * 10) / 10, miles_back: Math.round(back * 10) / 10,
+notes: document.getElementById('tf-notes').value.trim() || null,
+});
+if (error) throw error;
+document.getElementById('time-form').hidden = true;
+await loadLedgers();
+} catch (err) { setAlert('tf-msg', friendlyError(err), 'error'); }
+finally { setBusy(btn, false, label); }
+});
