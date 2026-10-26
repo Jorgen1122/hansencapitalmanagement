@@ -28,6 +28,7 @@
 <div class="hdr-inner">
 <a class="brand" href="financial-services.html"><img src="logo.png" alt="Hansen Capital Management home" width="800" height="250"></a>
 <nav class="site-nav portal-nav" aria-label="Dashboard">
+  <a href="#start" id="nav-start" hidden>Setup</a>
   <a href="#overview" class="active" aria-current="page">Overview</a>
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
@@ -65,6 +66,16 @@ first month's books are closed.
 
 <div class="dash-body">
 <div class="dash-main">
+
+<section class="panel onb-banner" id="onb-banner" aria-labelledby="onb-banner-title" hidden>
+<div class="onb-banner-txt">
+<p class="rail-label">Account setup</p>
+<h2 class="onb-banner-title" id="onb-banner-title">Set up your account</h2>
+<p class="onb-banner-copy" id="onb-banner-copy"></p>
+<div class="close-bar" aria-hidden="true"><span id="onb-banner-fill"></span></div>
+</div>
+<a class="btn" href="#start" id="onb-banner-btn">Get started</a>
+</section>
 
 <section class="panel note-panel" id="note-panel" aria-labelledby="note-title" hidden>
 <div class="panel-bar"><h2 class="panel-title" id="note-title">Analyst Note</h2><span class="note-period" id="note-period"></span></div>
@@ -114,6 +125,13 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <a href="#" id="pay-link" class="btn-pay" target="_blank" rel="noopener" style="display:none;">View &amp; Pay Invoice</a>
 </div>
 
+<div class="panel rail-card" id="setup-card" hidden>
+<p class="rail-label">Your setup checklist</p>
+<div class="close-bar" aria-hidden="true"><span id="setup-fill"></span></div>
+<p class="close-count" id="setup-count"></p>
+<ul class="close-list setup-list" id="setup-list"></ul>
+</div>
+
 <div class="panel rail-card" id="close-card" hidden>
 <p class="rail-label" id="close-title">Month-end close</p>
 <div class="close-bar" aria-hidden="true"><span id="close-fill"></span></div>
@@ -140,6 +158,109 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 </aside>
 </div>
+</div>
+
+<!-- GET STARTED (onboarding) -->
+<div class="tab-panel" data-tab="start" hidden>
+<section class="panel onb" aria-labelledby="onb-title">
+<div class="panel-bar"><h2 class="panel-title" id="onb-title">Get Started</h2><span class="onb-count" id="onb-count"></span></div>
+<ol class="onb-steps" id="onb-steps" aria-label="Setup steps"></ol>
+
+<div class="onb-submitted" id="onb-submitted" hidden>
+<p class="onb-lead">Thanks, we have everything we need to start.</p>
+<p class="onb-copy">We're reviewing your answers and documents and will reach out within two business days. Your setup checklist is on the right. You can still change anything below until we finish the review.</p>
+</div>
+
+<!-- 1 -->
+<form class="onb-step" data-step="1" novalidate>
+<h3 class="onb-h">About you</h3>
+<p class="onb-copy">The owner we'll work with. We use this to reach you and on tax filings.</p>
+<div class="led-grid">
+<label>First name *<input type="text" name="owner_first_name" maxlength="80" autocomplete="given-name" required></label>
+<label>Last name *<input type="text" name="owner_last_name" maxlength="80" autocomplete="family-name" required></label>
+<label>Email *<input type="email" name="owner_email" maxlength="160" autocomplete="email" required></label>
+<label>Phone<input type="tel" name="owner_phone" maxlength="30" autocomplete="tel"></label>
+<label class="span-2">Home address<input type="text" name="owner_address" maxlength="240" autocomplete="street-address"></label>
+</div>
+</form>
+
+<!-- 2 -->
+<form class="onb-step" data-step="2" novalidate hidden>
+<h3 class="onb-h">Your business</h3>
+<p class="onb-copy">Exactly as it appears on your IRS and state paperwork.</p>
+<div class="led-grid">
+<label class="span-2">Legal business name *<input type="text" name="business_legal_name" maxlength="160" required></label>
+<label>DBA / trade name<input type="text" name="dba_name" maxlength="160"></label>
+<label>Entity type *<select name="entity_type" required>
+<option value="">Choose…</option>
+<option>Sole proprietor</option><option>Single-member LLC</option><option>Multi-member LLC</option>
+<option>S corporation</option><option>C corporation</option><option>Partnership</option><option>Nonprofit</option><option>Not formed yet</option>
+</select></label>
+<label>Industry<input type="text" name="industry" maxlength="80" placeholder="e.g. Auto detailing, Remodeling"></label>
+<label>Business email<input type="email" name="business_email" maxlength="160"></label>
+<label>Business phone<input type="tel" name="business_phone" maxlength="30"></label>
+<label>State formed<input type="text" name="formation_state" maxlength="40" placeholder="e.g. Nebraska"></label>
+<label class="span-2">Business address<input type="text" name="business_address" maxlength="240"></label>
+<label>Date formed<input type="date" name="formation_date"></label>
+<label>Tax year ends<select name="fiscal_year_end">
+<option value="December">December (calendar year)</option>
+<option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option>
+<option>July</option><option>August</option><option>September</option><option>October</option><option>November</option>
+</select></label>
+</div>
+</form>
+
+<!-- 3 -->
+<form class="onb-step" data-step="3" novalidate hidden>
+<h3 class="onb-h">Tax IDs</h3>
+<p class="onb-copy">Each number is encrypted before it's stored. Only Hansen Capital Management can view the full number, and every view is logged. You'll only ever see the last four digits here.</p>
+<div class="taxid-grid">
+<div class="taxid-row">
+<label for="onb-ein">Business EIN<span class="taxid-hint">9 digits, from your IRS letter</span></label>
+<div class="taxid-ctl"><input type="text" id="onb-ein" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="12-3456789"><button class="btn btn-sm" type="button" data-taxid="ein">Save EIN</button></div>
+<p class="taxid-on" id="onb-ein-on"></p>
+</div>
+<div class="taxid-row">
+<label for="onb-ssn">Owner SSN<span class="taxid-hint">Needed for sole proprietors and single-member LLCs</span></label>
+<div class="taxid-ctl"><input type="text" id="onb-ssn" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="123-45-6789"><button class="btn btn-sm" type="button" data-taxid="ssn">Save SSN</button></div>
+<p class="taxid-on" id="onb-ssn-on"></p>
+</div>
+</div>
+<div class="led-grid onb-gap">
+<label class="span-2">Sales tax permit # (if you have one)<input type="text" name="sales_tax_permit" maxlength="60"></label>
+</div>
+<p class="onb-copy onb-small">Don't have an EIN yet? Skip this step and we'll help you get one.</p>
+</form>
+
+<!-- 4 -->
+<form class="onb-step" data-step="4" novalidate hidden>
+<h3 class="onb-h">How your money moves</h3>
+<p class="onb-copy">This tells us what to set up for you. There are no wrong answers. Most new clients have a few gaps, and closing them is what we're here for.</p>
+<div class="onb-qs" id="onb-qs"></div>
+</form>
+
+<!-- 5 -->
+<form class="onb-step" data-step="5" novalidate hidden>
+<h3 class="onb-h">Documents</h3>
+<p class="onb-copy">Upload what you have. Anything you don't have yet, skip it and we'll ask later. PDF or photo is fine.</p>
+<ul class="onb-docs" id="onb-docs"></ul>
+</form>
+
+<!-- 6 -->
+<form class="onb-step" data-step="6" novalidate hidden>
+<h3 class="onb-h">Review and submit</h3>
+<p class="onb-copy">Check your details. When you submit, we'll review everything and build your setup checklist.</p>
+<dl class="onb-review" id="onb-review"></dl>
+</form>
+
+<div class="onb-actions">
+<button class="btn-plain" type="button" id="onb-back">Back</button>
+<span class="onb-spacer"></span>
+<button class="btn-plain" type="button" id="onb-later">Save and finish later</button>
+<button class="btn" type="button" id="onb-next">Save and continue</button>
+</div>
+<div id="onb-msg" class="form-alert onb-msg" role="alert" aria-live="polite"></div>
+</section>
 </div>
 
 <!-- P&L -->

@@ -54,7 +54,8 @@ await loadBilling();
 await loadExtras();
 await loadFlows();
 await loadLedgers();
-showTab(location.hash.slice(1));
+await loadOnboarding();
+showTab(location.hash.slice(1) || ((onb && onb.approved_at) || currentClient.engagement_status !== 'onboarding' ? '' : 'start'));
 
 document.querySelectorAll('.chart-tab').forEach(tab => {
 tab.addEventListener('click', () => {
@@ -549,7 +550,7 @@ init().then(() => { if (currentClient) refreshMfa(); });
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['overview', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['start', 'overview', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (!name) name = 'overview';
@@ -1318,3 +1319,390 @@ await loadLedgers();
 } catch (err) { setAlert('tf-msg', friendlyError(err), 'error'); }
 finally { setBusy(btn, false, label); }
 });
+
+// =====================================================================
+// Get Started: onboarding wizard + setup checklist
+// Tables: client_onboarding (progress + answers), client_profiles,
+// setup_items (recommendations). Submit runs public.submit_onboarding().
+// =====================================================================
+const ONB_STEPS = ['About you', 'Business', 'Tax IDs', 'Money setup', 'Documents', 'Review'];
+const ONB_QS = [
+  { k: 'biz_checking', q: 'Do you have a business checking account?', opts: [['yes', 'Yes'], ['no', 'No']] },
+  { k: 'bank_names', q: 'Which bank(s) do you use for the business?', text: 'e.g. Pinnacle Bank, Chase', hint: 'Bank names only. Never send account numbers here.' },
+  { k: 'mixes_personal', q: 'Do you ever pay business expenses from a personal account or card?', opts: [['yes', 'Yes, sometimes'], ['no', 'No']] },
+  { k: 'tax_savings', q: 'Do you set money aside for taxes in a separate account?', opts: [['yes', 'Yes'], ['no', 'No']] },
+  { k: 'takes_cards', q: 'Can customers pay you by card or online?', opts: [['yes', 'Yes'], ['no', 'No']] },
+  { k: 'processors', q: 'How do customers pay you?', multi: true, hint: 'Choose all that apply.', opts: [['stripe', 'Stripe'], ['square', 'Square'], ['paypal', 'PayPal'], ['venmo', 'Venmo / Cash App'], ['zelle', 'Zelle'], ['cash', 'Cash & checks'], ['other', 'Other']] },
+  { k: 'sales_tax', q: 'Do you sell products or services that could be subject to sales tax?', opts: [['yes', 'Yes'], ['no', 'No'], ['unsure', 'Not sure']] },
+  { k: 'workers', q: 'Who works in the business?', opts: [['just_me', 'Just me'], ['contractors', 'Contractors'], ['employees', 'Employees'], ['both', 'Both']] },
+  { k: 'vehicle', q: 'Do you drive for the business (jobs, supplies, clients)?', opts: [['yes', 'Yes'], ['no', 'No']] },
+  { k: 'software', q: 'How do you keep your books today?', opts: [['none', 'Nothing yet'], ['spreadsheet', 'Spreadsheet'], ['quickbooks', 'QuickBooks'], ['other', 'Other software']] },
+  { k: 'last_return', q: 'Has the business filed a tax return before?', opts: [['yes', 'Yes'], ['first_year', 'No, first year'], ['unsure', 'Not sure']] },
+  { k: 'goals', q: 'What do you most want help with?', area: true, text: 'e.g. Knowing what I owe in taxes, cleaning up last year, getting paid faster' },
+];
+const ONB_DOCS = [
+  { k: 'EIN letter', d: 'IRS letter CP 575 or 147C showing your EIN.' },
+  { k: 'Formation documents', d: 'Articles of organization or incorporation, operating agreement.' },
+  { k: 'Prior tax return', d: "Last year's business return, or your Schedule C." },
+  { k: 'Bank statements', d: 'The last 3 months of business bank statements.' },
+  { k: 'Sales tax permit', d: 'Only if you have one.' },
+];
+const PROFILE_FIELDS = ['owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone', 'owner_address', 'business_legal_name', 'dba_name', 'entity_type', 'industry', 'business_email', 'business_phone', 'business_address', 'formation_state', 'formation_date', 'fiscal_year_end', 'sales_tax_permit'];
+
+let onb = null;          // client_onboarding row (or null)
+let onbProfile = {};     // client_profiles row
+let onbDocs = [];        // categories uploaded
+let onbStep = 1;
+let setupItems = [];
+
+async function loadOnboarding() {
+  const cid = currentClient.id;
+  const [o, p, d, s] = await Promise.all([
+    supabaseClient.from('client_onboarding').select('*').eq('client_id', cid).maybeSingle(),
+    supabaseClient.from('client_profiles').select(PROFILE_FIELDS.concat(['ein_last4', 'ssn_last4']).join(',')).eq('client_id', cid).maybeSingle(),
+    supabaseClient.from('documents').select('category').eq('client_id', cid).eq('direction', 'client_upload'),
+    supabaseClient.from('setup_items').select('*').eq('client_id', cid).order('sort_order').order('created_at'),
+  ]);
+  if (o.error && p.error) return; // tables unavailable: leave the dashboard as-is
+  onb = (!o.error && o.data) || null;
+  onbProfile = (!p.error && p.data) || {};
+  if (!onbProfile.business_legal_name) onbProfile.business_legal_name = currentClient.business_name;
+  if (!onbProfile.owner_email) onbProfile.owner_email = currentUser.email || '';
+  onbDocs = ((!d.error && d.data) || []).map(r => r.category).filter(Boolean);
+  setupItems = (!s.error && s.data) || [];
+  onbStep = onb ? Math.min(Math.max(onb.current_step || 1, 1), 6) : 1;
+  buildOnbChrome();
+  renderOnb();
+  renderSetupCard();
+  renderOnbBanner();
+}
+
+const onbApproved = () => !!(onb && onb.approved_at);
+const onbSubmitted = () => !!(onb && onb.submitted_at);
+
+function renderOnbBanner() {
+  const nav = document.getElementById('nav-start');
+  const banner = document.getElementById('onb-banner');
+  if (onbApproved()) { nav.hidden = true; banner.hidden = true; return; }
+  nav.hidden = false;
+  const done = onbSubmitted() ? 6 : Math.max(onbStep - 1, 0);
+  document.getElementById('onb-banner-fill').style.width = `${Math.round(done / 6 * 100)}%`;
+  if (onbSubmitted()) {
+    document.getElementById('onb-banner-title').textContent = "We're reviewing your setup";
+    document.getElementById('onb-banner-copy').textContent = 'Your answers are in. We\'ll reach out within two business days. You can still make changes.';
+    document.getElementById('onb-banner-btn').textContent = 'View your setup';
+  } else if (onb) {
+    document.getElementById('onb-banner-title').textContent = 'Finish setting up your account';
+    document.getElementById('onb-banner-copy').textContent = `Step ${onbStep} of 6: ${ONB_STEPS[onbStep - 1]}. Your progress is saved.`;
+    document.getElementById('onb-banner-btn').textContent = 'Continue setup';
+  } else {
+    document.getElementById('onb-banner-title').textContent = 'Set up your account';
+    document.getElementById('onb-banner-copy').textContent = 'Six short steps, about 10 minutes. Tell us about your business so we can set up your books and tax plan.';
+    document.getElementById('onb-banner-btn').textContent = 'Get started';
+  }
+  banner.hidden = false;
+}
+
+function buildOnbChrome() {
+  // stepper
+  const ol = document.getElementById('onb-steps');
+  ol.textContent = '';
+  ONB_STEPS.forEach((name, i) => {
+    const li = el('li'); li.dataset.step = String(i + 1);
+    const b = el('button', 'onb-dot'); b.type = 'button';
+    b.appendChild(el('span', 'onb-num', String(i + 1)));
+    b.appendChild(el('span', 'onb-name', name));
+    b.addEventListener('click', () => { if (i + 1 <= maxReachable()) goStep(i + 1, true); });
+    li.appendChild(b); ol.appendChild(li);
+  });
+  // questions
+  const box = document.getElementById('onb-qs');
+  box.textContent = '';
+  const ans = (onb && onb.answers) || {};
+  ONB_QS.forEach(q => {
+    const f = el('fieldset', 'onb-q'); f.dataset.k = q.k;
+    f.appendChild(el('legend', null, q.q));
+    if (q.hint) f.appendChild(el('p', 'onb-hint', q.hint));
+    if (q.opts) {
+      const row = el('div', 'chips');
+      q.opts.forEach(([v, label]) => {
+        const lab = el('label', 'chip');
+        const inp = document.createElement('input');
+        inp.type = q.multi ? 'checkbox' : 'radio'; inp.name = 'q_' + q.k; inp.value = v;
+        const cur = ans[q.k];
+        inp.checked = q.multi ? Array.isArray(cur) && cur.includes(v) : cur === v;
+        lab.append(inp, el('span', null, label));
+        row.appendChild(lab);
+      });
+      f.appendChild(row);
+    } else {
+      const inp = document.createElement(q.area ? 'textarea' : 'input');
+      if (!q.area) inp.type = 'text';
+      inp.name = 'q_' + q.k; inp.maxLength = q.area ? 1000 : 160; inp.placeholder = q.text || '';
+      inp.className = 'onb-text'; inp.value = typeof ans[q.k] === 'string' ? ans[q.k] : '';
+      inp.setAttribute('aria-label', q.q);
+      f.appendChild(inp);
+    }
+    box.appendChild(f);
+  });
+  // profile fields
+  document.querySelectorAll('.onb-step [name]').forEach(inp => {
+    if (PROFILE_FIELDS.includes(inp.name) && onbProfile[inp.name] != null) inp.value = onbProfile[inp.name];
+  });
+  renderTaxIdState();
+  renderOnbDocs();
+}
+
+function maxReachable() { return onbSubmitted() ? 6 : Math.max(onbStep, (onb && onb.current_step) || 1); }
+
+function renderOnb() {
+  document.querySelectorAll('.onb-step').forEach(s => { s.hidden = Number(s.dataset.step) !== onbStep; });
+  document.querySelectorAll('#onb-steps li').forEach(li => {
+    const n = Number(li.dataset.step);
+    li.className = n === onbStep ? 'on' : (n < maxReachable() || onbSubmitted() ? 'done' : '');
+    const b = li.querySelector('button');
+    b.disabled = n > maxReachable();
+    if (n === onbStep) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+  });
+  document.getElementById('onb-count').textContent = onbSubmitted() ? 'Submitted' : `Step ${onbStep} of 6`;
+  document.getElementById('onb-submitted').hidden = !onbSubmitted();
+  document.getElementById('onb-back').hidden = onbStep === 1;
+  const next = document.getElementById('onb-next');
+  next.textContent = onbStep === 6 ? (onbSubmitted() ? 'Resubmit changes' : 'Submit') : 'Save and continue';
+  document.getElementById('onb-later').hidden = onbStep === 6;
+  if (onbStep === 6) renderReview();
+}
+
+function goStep(n, scroll) {
+  onbStep = n; setAlert('onb-msg', ''); renderOnb();
+  if (scroll) document.getElementById('onb-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function collectProfile(stepEl) {
+  const out = {};
+  stepEl.querySelectorAll('[name]').forEach(inp => {
+    if (!PROFILE_FIELDS.includes(inp.name)) return;
+    const v = inp.value.trim();
+    out[inp.name] = v === '' ? null : v;
+  });
+  return out;
+}
+
+function collectAnswers() {
+  const ans = Object.assign({}, (onb && onb.answers) || {});
+  ONB_QS.forEach(q => {
+    if (q.opts && q.multi) ans[q.k] = Array.from(document.querySelectorAll(`[name="q_${q.k}"]:checked`)).map(i => i.value);
+    else if (q.opts) { const c = document.querySelector(`[name="q_${q.k}"]:checked`); if (c) ans[q.k] = c.value; }
+    else { const v = document.querySelector(`[name="q_${q.k}"]`).value.trim(); ans[q.k] = v; }
+  });
+  return ans;
+}
+
+function validateStep(n) {
+  const stepEl = document.querySelector(`.onb-step[data-step="${n}"]`);
+  let bad = null;
+  stepEl.querySelectorAll('[required]').forEach(inp => {
+    const empty = !inp.value.trim();
+    const badEmail = inp.type === 'email' && inp.value.trim() && !emailOk(inp.value.trim());
+    inp.toggleAttribute('aria-invalid', empty || badEmail);
+    if ((empty || badEmail) && !bad) bad = { inp, msg: badEmail ? 'Check the email address.' : 'Fill in the fields marked *.' };
+  });
+  stepEl.querySelectorAll('input[type="email"]:not([required])').forEach(inp => {
+    const badEmail = inp.value.trim() && !emailOk(inp.value.trim());
+    inp.toggleAttribute('aria-invalid', !!badEmail);
+    if (badEmail && !bad) bad = { inp, msg: 'Check the email address.' };
+  });
+  if (bad) { setAlert('onb-msg', bad.msg, 'error'); bad.inp.focus(); return false; }
+  return true;
+}
+
+async function saveStep(n, nextStep) {
+  const cid = currentClient.id;
+  const stepEl = document.querySelector(`.onb-step[data-step="${n}"]`);
+  if (n <= 3) {
+    const prof = collectProfile(stepEl);
+    if (Object.keys(prof).length) {
+      const { error } = await supabaseClient.from('client_profiles').upsert(Object.assign({ client_id: cid }, prof), { onConflict: 'client_id' });
+      if (error) throw error;
+      Object.assign(onbProfile, prof);
+    }
+  }
+  const row = { client_id: cid, current_step: Math.max(nextStep, (onb && onb.current_step) || 1), answers: n === 4 ? collectAnswers() : ((onb && onb.answers) || {}) };
+  const { data, error } = await supabaseClient.from('client_onboarding').upsert(row, { onConflict: 'client_id' }).select('*').single();
+  if (error) throw error;
+  onb = data;
+}
+
+async function onbNext(later) {
+  const btn = document.getElementById(later ? 'onb-later' : 'onb-next');
+  const label = btn.textContent;
+  setAlert('onb-msg', '');
+  if (onbStep < 6 && !validateStep(onbStep)) return;
+  setBusy(btn, true, label);
+  try {
+    if (onbStep < 6) {
+      await saveStep(onbStep, later ? onbStep : onbStep + 1);
+      if (later) { setAlert('onb-msg', 'Saved. Pick up where you left off any time.', 'success'); }
+      else goStep(onbStep + 1, true);
+    } else {
+      const { error } = await supabaseClient.rpc('submit_onboarding', { p_client: currentClient.id });
+      if (error) throw error;
+      await loadOnboarding();
+      goStep(6, true);
+      setAlert('onb-msg', 'Submitted. Thank you! Your setup checklist is ready.', 'success');
+    }
+    renderOnbBanner();
+  } catch (e) {
+    const m = (e && e.message) || '';
+    setAlert('onb-msg', m.startsWith('Please add') ? m + '.' : friendlyError(e), 'error');
+  } finally { setBusy(btn, false, label); renderOnb(); }
+}
+
+// ---- Tax IDs ----
+function renderTaxIdState() {
+  [['ein', onbProfile.ein_last4], ['ssn', onbProfile.ssn_last4]].forEach(([f, last4]) => {
+    const p = document.getElementById(`onb-${f}-on`);
+    p.textContent = last4 ? `On file: ending in ${last4}` : '';
+    p.className = 'taxid-on' + (last4 ? ' ok' : '');
+  });
+}
+async function saveTaxId(field, btn) {
+  const inp = document.getElementById(`onb-${field}`);
+  const digits = inp.value.replace(/\D/g, '');
+  setAlert('onb-msg', '');
+  if (digits.length !== 9) { setAlert('onb-msg', `${field.toUpperCase()} must be 9 digits.`, 'error'); inp.focus(); return; }
+  const label = btn.textContent; setBusy(btn, true, label);
+  try {
+    if (!onb) await saveStep(3, 3);
+    const { error } = await supabaseClient.rpc('set_tax_id', { p_client: currentClient.id, p_field: field, p_value: digits });
+    if (error) throw error;
+    inp.value = '';
+    onbProfile[field + '_last4'] = digits.slice(-4);
+    renderTaxIdState();
+    setAlert('onb-msg', `${field.toUpperCase()} saved and encrypted.`, 'success');
+  } catch (e) { setAlert('onb-msg', friendlyError(e), 'error'); }
+  finally { setBusy(btn, false, label); }
+}
+
+// ---- Documents ----
+function renderOnbDocs() {
+  const ul = document.getElementById('onb-docs');
+  ul.textContent = '';
+  ONB_DOCS.forEach((doc, i) => {
+    const have = onbDocs.filter(c => c === doc.k).length;
+    const li = el('li', have ? 'have' : '');
+    const txt = el('div', 'onb-doc-txt');
+    txt.appendChild(el('span', 'onb-doc-k', doc.k));
+    txt.appendChild(el('span', 'onb-doc-d', doc.d));
+    li.appendChild(el('span', 'ck', have ? '✓' : '○'));
+    li.appendChild(txt);
+    const ctl = el('div', 'onb-doc-ctl');
+    if (have) ctl.appendChild(el('span', 'onb-doc-have', have === 1 ? 'Uploaded' : `${have} uploaded`));
+    const id = 'onb-file-' + i;
+    const inp = document.createElement('input'); inp.type = 'file'; inp.id = id; inp.className = 'sr-file';
+    inp.accept = 'image/*,application/pdf'; inp.multiple = true;
+    const lab = el('label', 'btn-plain btn-sm onb-up', have ? 'Add more' : 'Upload'); lab.htmlFor = id;
+    inp.addEventListener('change', () => uploadOnbDocs(doc.k, inp, lab));
+    ctl.append(inp, lab);
+    li.appendChild(ctl);
+    ul.appendChild(li);
+  });
+}
+async function uploadOnbDocs(category, inp, lab) {
+  const files = Array.from(inp.files || []);
+  if (!files.length) return;
+  setAlert('onb-msg', '');
+  for (const f of files) {
+    if (f.size > MAX_FILE_BYTES) { setAlert('onb-msg', `${f.name} is larger than 25 MB.`, 'error'); return; }
+    if (!(f.type === 'application/pdf' || f.type.startsWith('image/'))) { setAlert('onb-msg', `${f.name}: please upload a PDF or a photo.`, 'error'); return; }
+  }
+  lab.textContent = 'Uploading…';
+  try {
+    for (const f of files) {
+      const path = `${currentClient.id}/onboarding/${Date.now()}_${sanitizeFilename(f.name)}`;
+      const up = await supabaseClient.storage.from(DOCS_BUCKET).upload(path, f);
+      if (up.error) throw up.error;
+      const ins = await supabaseClient.from('documents').insert({ client_id: currentClient.id, filename: f.name, storage_path: path, category, direction: 'client_upload', status: 'pending' });
+      if (ins.error) throw ins.error;
+      onbDocs.push(category);
+    }
+    setAlert('onb-msg', `${files.length === 1 ? 'File' : files.length + ' files'} uploaded.`, 'success');
+    if (typeof loadDocuments === 'function') loadDocuments();
+  } catch (e) { setAlert('onb-msg', friendlyError(e), 'error'); }
+  renderOnbDocs();
+}
+
+// ---- Review ----
+function renderReview() {
+  const dl = document.getElementById('onb-review');
+  dl.textContent = '';
+  const p = onbProfile, a = (onb && onb.answers) || {};
+  const name = [p.owner_first_name, p.owner_last_name].filter(Boolean).join(' ');
+  const yn = (v) => ({ yes: 'Yes', no: 'No', unsure: 'Not sure' }[v] || '');
+  const label = (k) => { const q = ONB_QS.find(x => x.k === k); const o = q && q.opts && q.opts.find(([v]) => v === a[k]); return o ? o[1] : ''; };
+  const rows = [
+    ['Owner', name, 1, true], ['Email', p.owner_email || p.business_email, 1, true], ['Phone', p.owner_phone, 1],
+    ['Business', p.business_legal_name ? p.business_legal_name + (p.dba_name ? ` (DBA ${p.dba_name})` : '') : '', 2, true], ['Entity type', p.entity_type, 2, true],
+    ['Industry', p.industry, 2], ['Business address', p.business_address, 2],
+    ['EIN', p.ein_last4 ? `Ending in ${p.ein_last4}` : '', 3], ['SSN', p.ssn_last4 ? `Ending in ${p.ssn_last4}` : '', 3],
+    ['Business checking', yn(a.biz_checking), 4], ['Tax savings account', yn(a.tax_savings), 4], ['Takes card payments', yn(a.takes_cards), 4],
+    ['Who works in the business', label('workers'), 4], ['Sales tax', yn(a.sales_tax), 4],
+    ['Documents', `${new Set(onbDocs.filter(c => ONB_DOCS.some(d => d.k === c))).size} of ${ONB_DOCS.length} uploaded`, 5],
+  ];
+  rows.forEach(([k, v, step, req]) => {
+    const missing = !v || !String(v).trim();
+    const dt = el('dt', null, k);
+    const dd = el('dd', missing && req ? 'need' : (missing ? 'muted' : ''));
+    dd.appendChild(el('span', null, missing ? (req ? 'Required' : (step === 4 ? 'Not answered' : 'Not provided')) : String(v)));
+    const edit = el('button', 'link-edit', 'Edit'); edit.type = 'button';
+    edit.setAttribute('aria-label', `Edit ${k}`);
+    edit.addEventListener('click', () => goStep(step, true));
+    dd.appendChild(edit);
+    dl.append(dt, dd);
+  });
+}
+
+// ---- Setup checklist (rail) ----
+function renderSetupCard() {
+  const card = document.getElementById('setup-card');
+  if (!setupItems.length) { card.hidden = true; return; }
+  const live = setupItems.filter(i => i.status !== 'skipped');
+  const done = live.filter(i => i.status === 'done').length;
+  document.getElementById('setup-fill').style.width = `${live.length ? Math.round(done / live.length * 100) : 0}%`;
+  document.getElementById('setup-count').textContent = `${done} of ${live.length} complete`;
+  const list = document.getElementById('setup-list');
+  list.textContent = '';
+  live.slice().sort((x, y) => (x.status === 'done') - (y.status === 'done') || x.sort_order - y.sort_order).forEach(i => {
+    const isDone = i.status === 'done';
+    const li = el('li', isDone ? 'done' : (i.owner === 'client' ? 'needs-you' : 'pending'));
+    if (i.owner === 'client') {
+      const b = el('button', 'ck ck-btn', isDone ? '✓' : '○'); b.type = 'button';
+      b.setAttribute('aria-label', isDone ? `Mark "${i.title}" not done` : `Mark "${i.title}" done`);
+      b.addEventListener('click', () => toggleSetupItem(i, b));
+      li.appendChild(b);
+    } else li.appendChild(el('span', 'ck', isDone ? '✓' : '○'));
+    const t = el('span', 'setup-txt');
+    t.appendChild(el('span', 'setup-title', i.title));
+    if (i.detail && !isDone) t.appendChild(el('span', 'setup-detail', i.detail));
+    li.appendChild(t);
+    if (!isDone) li.appendChild(el('span', 'ck-tag' + (i.owner === 'hcm' ? ' hcm' : ''), i.owner === 'hcm' ? 'HCM' : 'You'));
+    list.appendChild(li);
+  });
+  card.hidden = false;
+}
+async function toggleSetupItem(item, btn) {
+  btn.disabled = true;
+  const status = item.status === 'done' ? 'open' : 'done';
+  const { data, error } = await supabaseClient.from('setup_items').update({ status }).eq('id', item.id).select('*').single();
+  btn.disabled = false;
+  if (error) return;
+  Object.assign(item, data);
+  renderSetupCard();
+}
+
+// ---- wiring ----
+document.getElementById('onb-next').addEventListener('click', () => onbNext(false));
+document.getElementById('onb-later').addEventListener('click', () => onbNext(true));
+document.getElementById('onb-back').addEventListener('click', () => goStep(Math.max(onbStep - 1, 1), true));
+document.querySelectorAll('[data-taxid]').forEach(b => b.addEventListener('click', () => saveTaxId(b.dataset.taxid, b)));
+document.querySelectorAll('.onb-step').forEach(f => f.addEventListener('submit', (e) => { e.preventDefault(); onbNext(false); }));
