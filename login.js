@@ -1,6 +1,6 @@
 // Client portal login. Helpers ($, setAlert, fieldError, setBusy, friendlyError,
 // hcmAuth, hcmCaptcha) come from portal-auth.js.
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { experimental: { passkey: true } } }); // passkeys (Face ID) are an opt-in Supabase feature
 
 hcmCaptcha.mount('captcha');
 
@@ -109,3 +109,61 @@ $('forgot-link').addEventListener('click', async (e) => {
     link.textContent = 'Forgot password?';
   }
 });
+
+// ---------- Other ways to sign in: Face ID / passkey, Google ----------
+// The login page asks Supabase which methods are switched on, so a button only appears once
+// that method is configured (Authentication → Providers / Passkeys).
+(async () => {
+  let s = null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } });
+    if (r.ok) s = await r.json();
+  } catch (e) { /* offline: keep password only */ }
+  if (!s) return;
+  const passkeys = !!s.passkeys_enabled && !!window.PublicKeyCredential;
+  const google = !!(s.external && s.external.google);
+  $('passkey-btn').hidden = !passkeys;
+  $('google-btn').hidden = !google;
+  $('alt-login').hidden = !(passkeys || google);
+})();
+
+$('passkey-btn').addEventListener('click', async () => {
+  const btn = $('passkey-btn');
+  setAlert('message', '');
+  if (!hcmCaptcha.ready()) { setAlert('message', 'Please complete the security check above, then try Face ID again.', 'error'); return; }
+  btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.auth.signInWithPasskey({ options: { captchaToken: hcmCaptcha.token_() } });
+    hcmCaptcha.reset();
+    if (error) throw error;
+    if (await hcmAuth.needsSecondStep(supabaseClient)) { btn.disabled = false; showMfaStep(); return; }
+    window.location.href = 'dashboard.html';
+  } catch (err) {
+    const m = String((err && (err.code || err.message)) || '');
+    if (/abort|cancel|NotAllowed/i.test(m)) setAlert('message', 'Face ID was cancelled. Try again, or log in with your password.', 'error');
+    else if (/not.?found|no.?credential|unknown/i.test(m)) setAlert('message', 'No passkey found for this device. Log in with your password, then add Face ID under Security.', 'error');
+    else setAlert('message', friendlyError(err), 'error');
+    btn.disabled = false;
+  }
+});
+
+$('google-btn').addEventListener('click', async () => {
+  setAlert('message', '');
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: 'https://www.hansencapitalmanagement.com/login.html', queryParams: { prompt: 'select_account' } },
+  });
+  if (error) setAlert('message', friendlyError(error), 'error');
+});
+
+// Coming back from Google with an error (e.g. no HCM account for that email)
+(() => {
+  const q = new URLSearchParams(location.hash.slice(1) || location.search);
+  const desc = q.get('error_description');
+  if (!desc) return;
+  const noAccount = /signup|not allowed|disabled/i.test(desc);
+  setAlert('message', noAccount
+    ? 'That Google account isn’t linked to a Hansen Capital Management login. Sign in with the email we invited you with, or contact us.'
+    : 'Google sign-in didn’t finish. Try again, or log in with your password.', 'error');
+  history.replaceState(null, '', location.pathname);
+})();

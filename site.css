@@ -813,3 +813,43 @@ textarea.onb-text { min-height: 84px; resize: vertical; }
 .setup-link { font-size: 0.8rem; font-weight: 600; margin-top: 2px; }
 #setup-card.setup-complete { border-color: rgba(111, 211, 164, 0.35); }
 #setup-card.setup-complete .close-count { color: var(--up); }
+.notif-box { display: flex; flex-direction: column; gap: 14px; }
+.notif-opt, .security-box .notif-opt { display: flex; margin: 0; gap: 12px; align-items: flex-start; cursor: pointer; font-size: 0.95rem; color: var(--ivory); text-align: left; }
+.notif-opt input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--gold); flex: none; }
+.notif-opt strong { display: block; font-weight: 600; }
+.notif-hint { display: block; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+/* alternate sign-in */
+.alt-login { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.or-rule { display: flex; align-items: center; gap: 12px; color: var(--dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; }
+.or-rule::before, .or-rule::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+.btn-alt { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 46px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--ivory); font: 600 0.95rem var(--sans); cursor: pointer; transition: border-color 150ms var(--ease), background-color 150ms var(--ease); }
+.btn-alt:hover { border-color: var(--gold); background: #12243F; }
+.btn-alt:disabled { opacity: 0.6; cursor: progress; }
+.btn-alt svg { color: var(--gold); flex: none; }
+.alt-note { margin: 2px 0 0; font-size: 0.8rem; color: var(--dim); text-align: center; }
+.pk-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.pk-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); }
+.pk-txt { display: flex; flex-direction: column; min-width: 0; color: var(--ivory); }
+.pk-empty { color: var(--dim); font-size: 0.9rem; }
+
+/* book a call */
+.link-plain { background: none; border: 0; width: 100%; cursor: pointer; color: var(--muted); font: 500 0.82rem var(--sans); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.link-plain:hover { color: var(--ivory); }
+.book-dlg { width: min(980px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line-2); background: var(--panel); color: var(--text); box-shadow: 0 40px 80px -30px #000; }
+.book-dlg::backdrop { background: rgba(3, 8, 16, 0.72); }
+.book-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.book-head h2 { margin: 0; font: 600 1.35rem var(--serif); color: var(--ivory); }
+.book-frame { height: min(700px, calc(100vh - 210px)); height: min(700px, calc(100dvh - 210px)); background: #0a1424; }
+.book-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.book-foot { margin: 0; padding: 12px 20px; font-size: 0.82rem; color: var(--dim); border-top: 1px solid var(--line); }
+
+/* product tour */
+.tour { position: fixed; inset: 0; z-index: 200; }
+.tour-ring { position: fixed; border-radius: 14px; box-shadow: 0 0 0 2px var(--gold), 0 0 0 9999px rgba(3, 8, 16, 0.72); transition: top 250ms var(--ease), left 250ms var(--ease), width 250ms var(--ease), height 250ms var(--ease); pointer-events: none; }
+.tour-card { position: fixed; background: var(--panel); border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 14px; padding: 18px 20px 16px; box-shadow: 0 30px 60px -20px #000; transition: top 250ms var(--ease), left 250ms var(--ease); }
+.tour-step { margin: 0 0 4px; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.tour-title { margin: 0 0 6px; font: 600 1.35rem/1.2 var(--serif); color: var(--ivory); }
+.tour-text { margin: 0 0 14px; font-size: 0.92rem; color: var(--text); line-height: 1.5; }
+.tour-actions { display: flex; gap: 8px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .tour-ring, .tour-card { transition: none; } }

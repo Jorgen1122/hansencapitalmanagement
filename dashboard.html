@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com; form-action 'self'; base-uri 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com https://calendly.com; form-action 'self'; base-uri 'self'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Dashboard | Hansen Capital Management</title>
@@ -150,11 +150,12 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <p class="rail-note">Latest month closed and posted to this dashboard.</p>
 </div>
 
-<div class="panel rail-card">
+<div class="panel rail-card" id="book-card">
 <p class="rail-label">Questions on your numbers?</p>
 <p class="rail-note">Book a review call or send us a note.</p>
-<a class="btn rail-btn" href="https://calendly.com/jorgen-hansencapitalmanagement/30min" target="_blank" rel="noopener">Book a call</a>
+<a class="btn rail-btn" id="book-btn" href="https://calendly.com/jorgen-hansencapitalmanagement/30min" target="_blank" rel="noopener">Book a call</a>
 <a class="rail-link" href="mailto:general@hansencapitalmanagement.com">Email us</a>
+<button type="button" class="rail-link link-plain" id="tour-btn">Take the tour</button>
 </div>
 </aside>
 </div>
@@ -451,10 +452,46 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div id="mfa-msg" class="form-alert" role="alert" aria-live="polite"></div>
 </div>
 </section>
+
+<section class="panel" id="pk-panel" aria-labelledby="pk-title" hidden>
+<div class="panel-bar"><h2 class="panel-title" id="pk-title">Face ID &amp; passkeys</h2></div>
+<div class="security-box notif-box">
+<p class="sec-status">Sign in with Face ID, Touch ID, Windows Hello or your phone instead of typing a password. Your fingerprint or face never leaves your device.</p>
+<ul class="pk-list" id="pk-list"></ul>
+<div><button class="btn" id="pk-add-btn" type="button">Add Face ID / passkey on this device</button></div>
+<div id="pk-msg" class="form-alert" role="status" aria-live="polite"></div>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="notif-title">
+<div class="panel-bar"><h2 class="panel-title" id="notif-title">Email notifications</h2></div>
+<div class="security-box notif-box">
+<p class="sec-status">Choose which emails we send you. Important account and billing notices may still be sent.</p>
+<label class="notif-opt"><input type="checkbox" id="np-reminders" checked><span><strong>Reminders</strong><span class="notif-hint">Unfinished setup, upcoming deadlines, invoices due, and checklist items.</span></span></label>
+<label class="notif-opt"><input type="checkbox" id="np-updates" checked><span><strong>Updates</strong><span class="notif-hint">New reports and documents from us, and questions about entries you submitted.</span></span></label>
+<div id="np-msg" class="form-alert" role="status" aria-live="polite"></div>
+</div>
+</section>
 </div>
 
 </div>
 </main>
+
+<dialog class="book-dlg" id="book-dlg" aria-labelledby="book-title">
+<div class="book-head"><h2 id="book-title">Book a call with Jorgen</h2><button type="button" class="btn-plain btn-sm" id="book-close">Close</button></div>
+<div class="book-frame"><iframe id="book-frame" title="Choose a time" loading="lazy"></iframe></div>
+<p class="book-foot">Pick a time that works. You'll get a calendar invite by email. Prefer email? <a href="mailto:general@hansencapitalmanagement.com">general@hansencapitalmanagement.com</a></p>
+</dialog>
+
+<div class="tour" id="tour" hidden>
+<div class="tour-ring" id="tour-ring"></div>
+<div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-text">
+<p class="tour-step" id="tour-step"></p>
+<h2 class="tour-title" id="tour-title"></h2>
+<p class="tour-text" id="tour-text"></p>
+<div class="tour-actions"><button type="button" class="btn-plain btn-sm" id="tour-skip">Skip tour</button><span class="onb-spacer"></span><button type="button" class="btn-plain btn-sm" id="tour-back">Back</button><button type="button" class="btn btn-sm" id="tour-next">Next</button></div>
+</div>
+</div>
 <footer>
 <div class="ftr-inner">
 <p class="legal-links"><a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms.html">Terms of Use</a></p>

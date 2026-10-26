@@ -1,4 +1,4 @@
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { experimental: { passkey: true } } }); // passkeys (Face ID) are an opt-in Supabase feature
 const DOCS_BUCKET = 'client-documents';
 let currentUser = null;
 let currentClient = null;
@@ -545,7 +545,7 @@ mfaMsg(friendlyError(err), 'error');
 setBusy(btn, false, 'Turn Off Two-Step Verification');
 });
 
-init().then(() => { if (currentClient) refreshMfa(); });
+init().then(() => { if (currentClient) { refreshMfa(); loadNotifPrefs(); loadPasskeys(); maybeAutoTour(); } });
 
 // =====================================================================
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
@@ -1721,3 +1721,168 @@ document.getElementById('onb-later').addEventListener('click', () => onbNext(tru
 document.getElementById('onb-back').addEventListener('click', () => goStep(Math.max(onbStep - 1, 1), true));
 document.querySelectorAll('[data-taxid]').forEach(b => b.addEventListener('click', () => saveTaxId(b.dataset.taxid, b)));
 document.querySelectorAll('.onb-step').forEach(f => f.addEventListener('submit', (e) => { e.preventDefault(); onbNext(false); }));
+
+// ---------- Email notification preferences (Security tab) ----------
+async function loadNotifPrefs() {
+  const { data } = await supabaseClient.from('notification_prefs').select('reminders, updates').eq('user_id', currentUser.id).maybeSingle();
+  document.getElementById('np-reminders').checked = data ? data.reminders : true;
+  document.getElementById('np-updates').checked = data ? data.updates : true;
+}
+async function saveNotifPrefs() {
+  const reminders = document.getElementById('np-reminders').checked;
+  const updates = document.getElementById('np-updates').checked;
+  const { error } = await supabaseClient.from('notification_prefs').upsert({ user_id: currentUser.id, reminders, updates, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  setAlert('np-msg', error ? friendlyError(error) : 'Saved.', error ? 'error' : 'success');
+}
+['np-reminders', 'np-updates'].forEach(id => document.getElementById(id).addEventListener('change', saveNotifPrefs));
+
+// ---------- Face ID / passkeys (Security tab) ----------
+async function passkeysEnabled() {
+  if (!window.PublicKeyCredential) return false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } });
+    return r.ok && !!(await r.json()).passkeys_enabled;
+  } catch (e) { return false; }
+}
+async function loadPasskeys() {
+  if (!(await passkeysEnabled())) return;
+  document.getElementById('pk-panel').hidden = false;
+  const list = document.getElementById('pk-list');
+  const { data, error } = await supabaseClient.auth.passkey.list();
+  list.textContent = '';
+  if (error) { setAlert('pk-msg', friendlyError(error), 'error'); return; }
+  const keys = data || [];
+  if (!keys.length) { list.appendChild(el('li', 'pk-empty', 'No passkeys yet.')); return; }
+  keys.forEach(k => {
+    const li = el('li', 'pk-item');
+    const t = el('span', 'pk-txt');
+    t.appendChild(el('strong', null, k.friendly_name || 'Passkey'));
+    t.appendChild(el('span', 'notif-hint', `Added ${fmtDate(k.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}` + (k.last_used_at ? ` · last used ${fmtDate(k.last_used_at, { month: 'short', day: 'numeric' })}` : '')));
+    const rm = el('button', 'btn-plain btn-sm', 'Remove');
+    rm.type = 'button';
+    rm.setAttribute('aria-label', `Remove ${k.friendly_name || 'passkey'}`);
+    let armed = false;
+    rm.addEventListener('click', async () => {
+      if (!armed) { armed = true; rm.textContent = 'Click again to remove'; setTimeout(() => { armed = false; rm.textContent = 'Remove'; }, 5000); return; }
+      rm.disabled = true;
+      const { error: e2 } = await supabaseClient.auth.passkey.delete({ passkeyId: k.id });
+      if (e2) { setAlert('pk-msg', friendlyError(e2), 'error'); rm.disabled = false; return; }
+      setAlert('pk-msg', 'Passkey removed.', 'success');
+      loadPasskeys();
+    });
+    li.append(t, rm);
+    list.appendChild(li);
+  });
+}
+document.getElementById('pk-add-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('pk-add-btn');
+  setAlert('pk-msg', '');
+  btn.disabled = true;
+  const { error } = await supabaseClient.auth.registerPasskey();
+  btn.disabled = false;
+  if (error) {
+    const m = String(error.code || error.message || '');
+    setAlert('pk-msg', /abort|cancel|NotAllowed/i.test(m) ? 'Cancelled. Nothing was added.' : (/exist|duplicate|InvalidState/i.test(m) ? 'This device already has a passkey for your account.' : friendlyError(error)), 'error');
+    return;
+  }
+  setAlert('pk-msg', 'Done. Next time, tap “Sign in with Face ID or passkey” on the login page.', 'success');
+  loadPasskeys();
+});
+
+// ---------- Book a call (Calendly inside the portal) ----------
+const CALENDLY = 'https://calendly.com/jorgen-hansencapitalmanagement/30min';
+function openBooking() {
+  const dlg = document.getElementById('book-dlg');
+  const frame = document.getElementById('book-frame');
+  if (!frame.src) {
+    const p = new URLSearchParams({ embed_domain: location.hostname, embed_type: 'Inline', hide_gdpr_banner: '1', hide_landing_page_details: '1',
+      background_color: '0a1424', text_color: 'f4f0e6', primary_color: 'd4af37' });
+    const prof = (typeof onbProfile === 'object' && onbProfile) || {};
+    const name = [prof.owner_first_name, prof.owner_last_name].filter(Boolean).join(' ');
+    if (name) p.set('name', name);
+    if (currentUser && currentUser.email) p.set('email', currentUser.email);
+    frame.src = `${CALENDLY}?${p.toString()}`;
+  }
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else window.open(CALENDLY, '_blank', 'noopener');
+}
+document.getElementById('book-btn').addEventListener('click', (e) => {
+  if (typeof HTMLDialogElement === 'undefined') return; // old browsers: follow the link
+  e.preventDefault(); openBooking();
+});
+document.getElementById('book-close').addEventListener('click', () => document.getElementById('book-dlg').close());
+document.getElementById('book-dlg').addEventListener('click', (e) => { if (e.target.id === 'book-dlg') e.target.close(); });
+
+// ---------- Product tour ----------
+const TOUR = [
+  { sel: '.portal-nav a[href="#overview"]', title: 'Your numbers at a glance', text: 'Overview shows your latest month: revenue, expenses, net income, cash and runway, with trends and a note from us each month.' },
+  { sel: '.portal-nav a[href="#pnl"]', title: 'Profit & loss', text: 'Your income statement month by month, with year-to-date totals.' },
+  { sel: '.portal-nav a[href="#cash"]', title: 'Cash', text: 'Where your money went each month, and how your cash balance is trending.' },
+  { sel: '.portal-nav a[href="#ledgers"]', title: 'Ledgers', text: 'Log cash and checks, jobs, hours and miles here. We review every entry and post it to your books.' },
+  { sel: '.portal-nav a[href="#reports"]', title: 'Reports', text: 'Your monthly financial package and analyses land here. We’ll email you when something new is posted.' },
+  { sel: '.portal-nav a[href="#documents"]', title: 'Documents', text: 'Send us receipts, statements and anything else. Everything is stored encrypted.' },
+  { sel: '.portal-nav a[href="#security"]', title: 'Security', text: 'Turn on two-step verification, add Face ID, and choose which emails you get.' },
+  { sel: '#book-card', title: 'Questions? Book a call', text: 'Pick a time with us right here, any time you want to go over your numbers or plan for taxes.' },
+];
+let tourI = 0, tourLastFocus = null;
+function tourShow(i) {
+  tourI = i;
+  const s = TOUR[i];
+  const target = document.querySelector(s.sel);
+  if (!target || target.offsetParent === null) { if (i < TOUR.length - 1) return tourShow(i + 1); return tourEnd(true); }
+  target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
+  document.getElementById('tour-step').textContent = `${i + 1} of ${TOUR.length}`;
+  document.getElementById('tour-title').textContent = s.title;
+  document.getElementById('tour-text').textContent = s.text;
+  document.getElementById('tour-back').hidden = i === 0;
+  document.getElementById('tour-next').textContent = i === TOUR.length - 1 ? 'Done' : 'Next';
+  requestAnimationFrame(() => tourPlace(target));
+}
+function tourPlace(target) {
+  const r = target.getBoundingClientRect(), pad = 6;
+  const ring = document.getElementById('tour-ring'), card = document.getElementById('tour-card');
+  Object.assign(ring.style, { top: `${r.top - pad}px`, left: `${r.left - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+  const cw = Math.min(360, window.innerWidth - 32), ch = card.offsetHeight || 180;
+  let top = r.bottom + 14;
+  if (top + ch > window.innerHeight - 12) top = Math.max(12, r.top - ch - 14);
+  const left = Math.min(Math.max(16, r.left + r.width / 2 - cw / 2), window.innerWidth - cw - 16);
+  Object.assign(card.style, { top: `${top}px`, left: `${left}px`, width: `${cw}px` });
+  document.getElementById('tour-next').focus();
+}
+function tourStart() {
+  if (location.hash && location.hash !== '#overview') location.hash = '#overview';
+  tourLastFocus = document.activeElement;
+  document.getElementById('tour').hidden = false;
+  document.body.classList.add('touring');
+  tourShow(0);
+}
+async function tourEnd(done) {
+  document.getElementById('tour').hidden = true;
+  document.body.classList.remove('touring');
+  if (tourLastFocus && tourLastFocus.focus) tourLastFocus.focus();
+  try { localStorage.setItem('hcm_tour_done', '1'); } catch (e) { /* private mode */ }
+  if (!(currentUser.user_metadata || {}).tour_done) {
+    const { data } = await supabaseClient.auth.updateUser({ data: { tour_done: true } });
+    if (data && data.user) currentUser = data.user;
+  }
+}
+document.getElementById('tour-next').addEventListener('click', () => (tourI < TOUR.length - 1 ? tourShow(tourI + 1) : tourEnd(true)));
+document.getElementById('tour-back').addEventListener('click', () => tourShow(Math.max(0, tourI - 1)));
+document.getElementById('tour-skip').addEventListener('click', () => tourEnd(false));
+document.getElementById('tour-btn').addEventListener('click', tourStart);
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('tour').hidden) return;
+  if (e.key === 'Escape') tourEnd(false);
+  else if (e.key === 'ArrowRight') document.getElementById('tour-next').click();
+  else if (e.key === 'ArrowLeft' && tourI > 0) tourShow(tourI - 1);
+});
+window.addEventListener('resize', () => { if (!document.getElementById('tour').hidden) tourShow(tourI); });
+
+// First visit: once setup is submitted (or not needed), show the tour on the Overview tab.
+function maybeAutoTour() {
+  let seen = false;
+  try { seen = localStorage.getItem('hcm_tour_done') === '1'; } catch (e) { /* ignore */ }
+  if (seen || (currentUser.user_metadata || {}).tour_done) return;
+  const setupPending = typeof onb !== 'undefined' && currentClient.engagement_status === 'onboarding' && !(onb && (onb.submitted_at || onb.approved_at));
+  const onOverview = !location.hash || location.hash === '#overview';
+  if (!setupPending && onOverview) setTimeout(tourStart, 600);
+}
