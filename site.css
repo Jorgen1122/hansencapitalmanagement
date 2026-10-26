@@ -810,3 +810,6 @@ textarea.onb-text { min-height: 84px; resize: vertical; }
   .onb-docs li { flex-wrap: wrap; }
   .onb-doc-ctl { width: 100%; padding-left: 32px; }
 }
+.setup-link { font-size: 0.8rem; font-weight: 600; margin-top: 2px; }
+#setup-card.setup-complete { border-color: rgba(111, 211, 164, 0.35); }
+#setup-card.setup-complete .close-count { color: var(--up); }

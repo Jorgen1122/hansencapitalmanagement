@@ -458,6 +458,7 @@ el.enroll.hidden = true;
 const factor = await hcmAuth.verifiedFactor(supabaseClient).catch(() => null);
 const pill = document.getElementById('sec-pill');
 if (pill) { pill.hidden = false; pill.textContent = factor ? '2-step on' : '2-step off'; pill.className = 'sec-pill ' + (factor ? 'on' : 'off'); }
+if (typeof syncTwoStepItem === 'function') syncTwoStepItem(!!factor);
 if (factor) {
 el.status.textContent = 'Two-step verification is ON. You’ll enter a code from your authenticator app each time you sign in.';
 el.enable.hidden = true;
@@ -1663,19 +1664,25 @@ function renderReview() {
 }
 
 // ---- Setup checklist (rail) ----
+const SETUP_DONE_SHOW_DAYS = 14; // after everything is done, show "Setup complete" this long, then hide the card
 function renderSetupCard() {
   const card = document.getElementById('setup-card');
   if (!setupItems.length) { card.hidden = true; return; }
   const live = setupItems.filter(i => i.status !== 'skipped');
   const done = live.filter(i => i.status === 'done').length;
+  card.classList.toggle('setup-complete', live.length > 0 && done === live.length);
+  if (live.length && done === live.length) {
+    const last = Math.max(...live.map(i => Date.parse(i.completed_at || i.created_at) || 0));
+    if (Date.now() - last > SETUP_DONE_SHOW_DAYS * 864e5) { card.hidden = true; return; }
+  }
   document.getElementById('setup-fill').style.width = `${live.length ? Math.round(done / live.length * 100) : 0}%`;
-  document.getElementById('setup-count').textContent = `${done} of ${live.length} complete`;
+  document.getElementById('setup-count').textContent = live.length && done === live.length ? `All ${live.length} done. Your setup is complete.` : `${done} of ${live.length} complete`;
   const list = document.getElementById('setup-list');
   list.textContent = '';
   live.slice().sort((x, y) => (x.status === 'done') - (y.status === 'done') || x.sort_order - y.sort_order).forEach(i => {
     const isDone = i.status === 'done';
     const li = el('li', isDone ? 'done' : (i.owner === 'client' ? 'needs-you' : 'pending'));
-    if (i.owner === 'client') {
+    if (i.owner === 'client' && i.key !== 'two_step') {
       const b = el('button', 'ck ck-btn', isDone ? '✓' : '○'); b.type = 'button';
       b.setAttribute('aria-label', isDone ? `Mark "${i.title}" not done` : `Mark "${i.title}" done`);
       b.addEventListener('click', () => toggleSetupItem(i, b));
@@ -1684,11 +1691,19 @@ function renderSetupCard() {
     const t = el('span', 'setup-txt');
     t.appendChild(el('span', 'setup-title', i.title));
     if (i.detail && !isDone) t.appendChild(el('span', 'setup-detail', i.detail));
+    if (i.key === 'two_step' && !isDone) { const a = el('a', 'setup-link', 'Go to Security →'); a.href = '#security'; t.appendChild(a); }
     li.appendChild(t);
     if (!isDone) li.appendChild(el('span', 'ck-tag' + (i.owner === 'hcm' ? ' hcm' : ''), i.owner === 'hcm' ? 'HCM' : 'You'));
     list.appendChild(li);
   });
   card.hidden = false;
+}
+// Two-step item follows the account's real 2-step state (Security tab).
+async function syncTwoStepItem(on) {
+  const item = setupItems.find(i => i.key === 'two_step');
+  if (!item || item.status === 'skipped' || (item.status === 'done') === on) return;
+  const { data, error } = await supabaseClient.from('setup_items').update({ status: on ? 'done' : 'open' }).eq('id', item.id).select('*').single();
+  if (!error && data) { Object.assign(item, data); renderSetupCard(); }
 }
 async function toggleSetupItem(item, btn) {
   btn.disabled = true;
