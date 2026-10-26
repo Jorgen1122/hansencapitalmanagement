@@ -853,3 +853,14 @@ textarea.onb-text { min-height: 84px; resize: vertical; }
 .tour-text { margin: 0 0 14px; font-size: 0.92rem; color: var(--text); line-height: 1.5; }
 .tour-actions { display: flex; gap: 8px; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .tour-ring, .tour-card { transition: none; } }
+
+/* ---------- Staff "View as client" ---------- */
+.staff-banner { position: sticky; top: 0; z-index: 60; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 10px var(--gutter); background: #2A2207; border-bottom: 1px solid rgba(212, 175, 55, 0.55); color: var(--ivory); font-size: 0.88rem; }
+.staff-banner strong { color: var(--gold-hi); }
+.staff-banner a { color: var(--gold-hi); font-weight: 600; white-space: nowrap; }
+.sb-tag { display: inline-block; margin-right: 8px; padding: 2px 9px; border-radius: 999px; background: var(--gold); color: var(--navy); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+body.staff-view #job-new-btn, body.staff-view #led-new-btn, body.staff-view #jd-time-btn, body.staff-view #jd-edit,
+body.staff-view .led-btn, body.staff-view .upload-box, body.staff-view #onb-next, body.staff-view #onb-later,
+body.staff-view [data-taxid], body.staff-view .onb-up, body.staff-view #pay-link, body.staff-view #book-btn,
+body.staff-view #tour-btn, body.staff-view .portal-nav a[href="#security"], body.staff-view #sec-pill { display: none !important; }
+body.staff-view .ck-btn { pointer-events: none; }

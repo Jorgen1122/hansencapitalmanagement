@@ -1,5 +1,8 @@
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { experimental: { passkey: true } } }); // passkeys (Face ID) are an opt-in Supabase feature
 const DOCS_BUCKET = 'client-documents';
+// Staff "View as client" (opened from the Workspace): dashboard.html?view=<client id>. Read-only.
+const VIEW_ID = (() => { const v = new URLSearchParams(location.search).get('view'); return v && /^[0-9a-f-]{36}$/i.test(v) ? v : null; })();
+let STAFF_VIEW = false;
 let currentUser = null;
 let currentClient = null;
 let kpiHistory = [];
@@ -25,18 +28,34 @@ const fmtDate = (d, opts) => new Date(d).toLocaleDateString('en-US', Object.assi
 
 async function init() {
 const { data: { session } } = await supabaseClient.auth.getSession();
-if (!session) { window.location.href = 'login.html'; return; }
+const rememberView = () => { if (VIEW_ID) { try { sessionStorage.setItem('hcm_next', 'dashboard.html?view=' + VIEW_ID); } catch (e) { /* private mode */ } } };
+if (!session) { rememberView(); window.location.href = 'login.html'; return; }
 // Accounts with two-step verification must finish it before seeing anything
-if (await hcmAuth.needsSecondStep(supabaseClient)) { window.location.href = 'login.html'; return; }
+if (await hcmAuth.needsSecondStep(supabaseClient)) { rememberView(); window.location.href = 'login.html'; return; }
 currentUser = session.user;
 
-const { data: client, error: clientErr } = await supabaseClient
-.from('clients').select('*').eq('user_id', currentUser.id).single();
+const { data: st } = await supabaseClient.rpc('staff_status');
+const isStaff = !!(st && st.is_staff_account && st.aal2);
+if (VIEW_ID && !isStaff) {
+document.getElementById('loading').textContent = 'This preview link is for Hansen Capital Management staff.';
+return;
+}
+if (VIEW_ID) enableStaffView();
+
+const { data: client, error: clientErr } = VIEW_ID
+? await supabaseClient.from('clients').select('*').eq('id', VIEW_ID).maybeSingle()
+: await supabaseClient.from('clients').select('*').eq('user_id', currentUser.id).single();
 
 if (clientErr || !client) {
-document.getElementById('loading').textContent =
-'No client profile is linked to this account yet. Contact us to finish setup.';
+document.getElementById('loading').textContent = isStaff
+? (VIEW_ID ? 'That client wasn’t found.' : 'You’re signed in as HCM staff. To see a client’s dashboard, open the client in the Workspace and click “View as client”.')
+: 'No client profile is linked to this account yet. Contact us to finish setup.';
 return;
+}
+if (STAFF_VIEW) {
+document.getElementById('sb-name').textContent = client.business_name;
+document.getElementById('sb-back').href = 'https://app.hansencapitalmanagement.com/#/clients/' + client.id;
+document.title = client.business_name + ' (client view) | Hansen Capital Management';
 }
 
 currentClient = client;
@@ -55,6 +74,7 @@ await loadExtras();
 await loadFlows();
 await loadLedgers();
 await loadOnboarding();
+if (STAFF_VIEW) document.querySelectorAll('.onb-step input, .onb-step select, .onb-step textarea').forEach((i) => { i.disabled = true; });
 showTab(location.hash.slice(1) || ((onb && onb.approved_at) || currentClient.engagement_status !== 'onboarding' ? '' : 'start'));
 
 document.querySelectorAll('.chart-tab').forEach(tab => {
@@ -286,6 +306,7 @@ const { data, error } = await supabaseClient
 .from('documents')
 .select('*')
 .eq('client_id', currentClient.id)
+.eq('visibility', 'client') // match what the client sees (staff can also see staff-only files)
 .order('uploaded_at', { ascending: false });
 
 document.getElementById('client-doc-rows').innerHTML = '';
@@ -545,7 +566,7 @@ mfaMsg(friendlyError(err), 'error');
 setBusy(btn, false, 'Turn Off Two-Step Verification');
 });
 
-init().then(() => { if (currentClient) { refreshMfa(); loadNotifPrefs(); loadPasskeys(); maybeAutoTour(); } });
+init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifPrefs(); loadPasskeys(); maybeAutoTour(); } });
 
 // =====================================================================
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
@@ -554,6 +575,7 @@ init().then(() => { if (currentClient) { refreshMfa(); loadNotifPrefs(); loadPas
 const TABS = ['start', 'overview', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
+if (STAFF_VIEW && name === 'security') name = 'overview'; // security settings belong to the client's own login
 if (!name) name = 'overview';
 document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p.dataset.tab !== name; });
 document.querySelectorAll('.portal-nav a').forEach(a => {
@@ -1885,4 +1907,20 @@ function maybeAutoTour() {
   const setupPending = typeof onb !== 'undefined' && currentClient.engagement_status === 'onboarding' && !(onb && (onb.submitted_at || onb.approved_at));
   const onOverview = !location.hash || location.hash === '#overview';
   if (!setupPending && onOverview) setTimeout(tourStart, 600);
+}
+
+// ---------- Staff "View as client" (read-only) ----------
+// Staff reach this page from the Workspace. Everything renders exactly as the client sees it,
+// but nothing can be changed: write controls are hidden and every write call is refused here.
+function enableStaffView() {
+  STAFF_VIEW = true;
+  document.body.classList.add('staff-view');
+  document.getElementById('staff-banner').hidden = false;
+  const refuse = () => { throw new Error('Read-only: you’re viewing this client as HCM staff.'); };
+  const from = supabaseClient.from.bind(supabaseClient);
+  supabaseClient.from = (t) => { const b = from(t); b.insert = refuse; b.update = refuse; b.upsert = refuse; b.delete = refuse; return b; };
+  const sfrom = supabaseClient.storage.from.bind(supabaseClient.storage);
+  supabaseClient.storage.from = (bucket) => { const b = sfrom(bucket); b.upload = refuse; b.remove = refuse; b.update = refuse; b.move = refuse; return b; };
+  const rpc = supabaseClient.rpc.bind(supabaseClient);
+  supabaseClient.rpc = (fn, args) => (['staff_status'].includes(fn) ? rpc(fn, args) : refuse());
 }

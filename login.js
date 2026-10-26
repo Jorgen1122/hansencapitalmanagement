@@ -18,7 +18,7 @@ function showMfaStep() {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) return;
   if (await hcmAuth.needsSecondStep(supabaseClient)) showMfaStep();
-  else window.location.href = 'dashboard.html';
+  else goNext();
 })();
 
 $('email').addEventListener('input', () => fieldError('email', ''));
@@ -51,7 +51,7 @@ $('auth-form').addEventListener('submit', async (e) => {
       return;
     }
     setBusy(btn, true, 'Opening your dashboard…');
-    window.location.href = 'dashboard.html';
+    goNext();
   } catch (err) {
     setAlert('message', friendlyError(err), 'error');
     setBusy(btn, false, 'Log In');
@@ -68,7 +68,7 @@ $('mfa-form').addEventListener('submit', async (e) => {
   try {
     await hcmAuth.verifyCode(supabaseClient, code);
     setBusy(btn, true, 'Opening your dashboard…');
-    window.location.href = 'dashboard.html';
+    goNext();
   } catch (err) {
     setAlert('mfa-message', friendlyError(err), 'error');
     setBusy(btn, false, 'Verify');
@@ -137,7 +137,7 @@ $('passkey-btn').addEventListener('click', async () => {
     hcmCaptcha.reset();
     if (error) throw error;
     if (await hcmAuth.needsSecondStep(supabaseClient)) { btn.disabled = false; showMfaStep(); return; }
-    window.location.href = 'dashboard.html';
+    goNext();
   } catch (err) {
     const m = String((err && (err.code || err.message)) || '');
     if (/abort|cancel|NotAllowed/i.test(m)) setAlert('message', 'Face ID was cancelled. Try again, or log in with your password.', 'error');
@@ -167,3 +167,10 @@ $('google-btn').addEventListener('click', async () => {
     : 'Google sign-in didn’t finish. Try again, or log in with your password.', 'error');
   history.replaceState(null, '', location.pathname);
 })();
+
+// After sign-in, return staff to the client view they opened from the Workspace (strictly validated).
+function goNext() {
+  let next = null;
+  try { next = sessionStorage.getItem('hcm_next'); sessionStorage.removeItem('hcm_next'); } catch (e) { /* private mode */ }
+  window.location.href = next && /^dashboard\.html\?view=[0-9a-f-]{36}$/i.test(next) ? next : 'dashboard.html';
+}
