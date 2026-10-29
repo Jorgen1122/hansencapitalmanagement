@@ -862,5 +862,5 @@ textarea.onb-text { min-height: 84px; resize: vertical; }
 body.staff-view #job-new-btn, body.staff-view #led-new-btn, body.staff-view #jd-time-btn, body.staff-view #jd-edit,
 body.staff-view .led-btn, body.staff-view .upload-box, body.staff-view #onb-next, body.staff-view #onb-later,
 body.staff-view [data-taxid], body.staff-view .onb-up, body.staff-view #pay-link, body.staff-view #book-btn,
-body.staff-view #tour-btn, body.staff-view .portal-nav a[href="#security"], body.staff-view #sec-pill { display: none !important; }
+body.staff-view #tour-btn, body.staff-view #bank-add-btn, body.staff-view #bank-list .btn-plain, body.staff-view .portal-nav a[href="#security"], body.staff-view #sec-pill { display: none !important; }
 body.staff-view .ck-btn { pointer-events: none; }

@@ -566,7 +566,7 @@ mfaMsg(friendlyError(err), 'error');
 setBusy(btn, false, 'Turn Off Two-Step Verification');
 });
 
-init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifPrefs(); loadPasskeys(); maybeAutoTour(); } });
+init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifPrefs(); loadPasskeys(); loadBanks(); maybeAutoTour(); } });
 
 // =====================================================================
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
@@ -1924,3 +1924,69 @@ function enableStaffView() {
   const rpc = supabaseClient.rpc.bind(supabaseClient);
   supabaseClient.rpc = (fn, args) => (['staff_status'].includes(fn) ? rpc(fn, args) : refuse());
 }
+
+// ---------- Bank & card accounts (Stripe Financial Connections) ----------
+// The Stripe script is loaded only when the client clicks "Link", straight from js.stripe.com (Stripe requires that).
+async function bankFeed(body) {
+  const { data, error } = await supabaseClient.functions.invoke('bank-feed', { body });
+  if (error) {
+    let m = error.message;
+    try { const ctx = error.context; if (ctx) { const j = await ctx.json(); if (j && j.error) m = j.error; } } catch (e) { /* keep */ }
+    throw new Error(m);
+  }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+function loadStripeJs() {
+  if (window.Stripe) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://js.stripe.com/v3/';
+    s.onload = () => resolve(); s.onerror = () => reject(new Error('Could not load Stripe. Check your connection and try again.'));
+    document.head.appendChild(s);
+  });
+}
+async function loadBanks() {
+  const list = document.getElementById('bank-list');
+  const { data, error } = await supabaseClient.from('bank_accounts')
+    .select('id, institution_name, display_name, last4, subcategory, status, last_synced_at').eq('client_id', currentClient.id).order('created_at');
+  list.textContent = '';
+  if (error) { document.getElementById('bank-panel').hidden = true; return; }
+  const rows = (data || []).filter(b => b.status !== 'disconnected');
+  if (!rows.length) { list.appendChild(el('li', 'pk-empty', 'No accounts linked yet.')); return; }
+  rows.forEach(b => {
+    const li = el('li', 'pk-item');
+    const t = el('span', 'pk-txt');
+    t.appendChild(el('strong', null, `${b.institution_name || 'Bank'} · ${b.display_name || 'Account'}${b.last4 ? ' ••' + b.last4 : ''}`));
+    t.appendChild(el('span', 'notif-hint', b.status === 'active'
+      ? (b.last_synced_at ? `Connected · last update ${fmtDate(b.last_synced_at, { month: 'short', day: 'numeric' })}` : 'Connected · first transactions arrive within a day')
+      : 'Needs attention: link it again'));
+    const rm = el('button', 'btn-plain btn-sm', 'Disconnect'); rm.type = 'button';
+    let armed = false;
+    rm.addEventListener('click', async () => {
+      if (!armed) { armed = true; rm.textContent = 'Click again to disconnect'; setTimeout(() => { armed = false; rm.textContent = 'Disconnect'; }, 5000); return; }
+      rm.disabled = true;
+      try { await bankFeed({ action: 'disconnect', bank_account_id: b.id }); setAlert('bank-msg', 'Disconnected.', 'success'); loadBanks(); }
+      catch (e) { setAlert('bank-msg', (e && e.message) || friendlyError(e), 'error'); rm.disabled = false; }
+    });
+    li.append(t, rm); list.appendChild(li);
+  });
+}
+document.getElementById('bank-add-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('bank-add-btn');
+  setAlert('bank-msg', ''); setBusy(btn, true, 'Opening…');
+  try {
+    const s = await bankFeed({ action: 'session' });
+    await loadStripeJs();
+    const stripe = window.Stripe(s.publishable_key);
+    const result = await stripe.collectFinancialConnectionsAccounts({ clientSecret: s.client_secret });
+    if (result.error) throw new Error(result.error.message);
+    const accts = (result.financialConnectionsSession && result.financialConnectionsSession.accounts) || [];
+    if (!accts.length) { setAlert('bank-msg', 'No accounts were linked.', ''); return; }
+    const saved = await bankFeed({ action: 'save', session_id: s.session_id });
+    setAlert('bank-msg', `Linked ${saved.accounts} account${saved.accounts === 1 ? '' : 's'}. Transactions start arriving within a day.`, 'success');
+    loadBanks();
+  } catch (e) {
+    setAlert('bank-msg', (e && e.message) || friendlyError(e), 'error');
+  } finally { setBusy(btn, false, 'Link a bank or card account'); }
+});

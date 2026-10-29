@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co; frame-src https://challenges.cloudflare.com https://calendly.com; form-action 'self'; base-uri 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com https://js.stripe.com https://*.js.stripe.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://gboebdgbebyoanlzrczn.supabase.co wss://gboebdgbebyoanlzrczn.supabase.co https://api.stripe.com https://*.stripe.com; frame-src https://challenges.cloudflare.com https://calendly.com https://js.stripe.com https://*.js.stripe.com https://*.stripe.com; form-action 'self'; base-uri 'self'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Client Dashboard | Hansen Capital Management</title>
@@ -464,6 +464,16 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <ul class="pk-list" id="pk-list"></ul>
 <div><button class="btn" id="pk-add-btn" type="button">Add Face ID / passkey on this device</button></div>
 <div id="pk-msg" class="form-alert" role="status" aria-live="polite"></div>
+</div>
+</section>
+
+<section class="panel" id="bank-panel" aria-labelledby="bank-title">
+<div class="panel-bar"><h2 class="panel-title" id="bank-title">Bank &amp; card accounts</h2></div>
+<div class="security-box notif-box">
+<p class="sec-status">Link your business bank and credit card accounts so transactions come to us automatically, with no statements to download. Read-only: we can see transactions, never move money. Linking is handled by Stripe, and we never see your bank login.</p>
+<ul class="pk-list" id="bank-list"></ul>
+<div><button class="btn" id="bank-add-btn" type="button">Link a bank or card account</button></div>
+<div id="bank-msg" class="form-alert" role="status" aria-live="polite"></div>
 </div>
 </section>
 
