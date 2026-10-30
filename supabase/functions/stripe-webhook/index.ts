@@ -33,6 +33,13 @@ Deno.serve(async (req) => {
   const invoice = event.data.object as Stripe.Invoice;
   const stripeCustomerId = invoice.customer as string;
 
+  // A deleted draft no longer exists in Stripe: remove it here too.
+  if (event.type === 'invoice.deleted') {
+    const { error } = await supabaseAdmin.from('payments').delete().eq('stripe_invoice_id', invoice.id);
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ received: true, deleted: invoice.id }), { status: 200 });
+  }
+
   // Match the invoice back to a client via their stored stripe_customer_id
   const { data: client, error: clientErr } = await supabaseAdmin
     .from('clients')

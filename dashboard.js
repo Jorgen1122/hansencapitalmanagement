@@ -109,6 +109,7 @@ const { data, error } = await supabaseClient
 .from('payments')
 .select('*')
 .eq('client_id', currentClient.id)
+.in('status', ['open', 'paid']) // drafts and voided invoices never show to clients
 .order('period_end', { ascending: false })
 .limit(1)
 .single();
@@ -768,6 +769,7 @@ const table = document.getElementById('billing-table'), empty = document.getElem
 const { data, error } = await supabaseClient
 .from('payments').select('*')
 .eq('client_id', currentClient.id)
+.in('status', ['open', 'paid', 'uncollectible']) // drafts and voided invoices never show to clients
 .order('period_end', { ascending: false });
 table.textContent = '';
 if (error || !data || !data.length) { statCards('billing-stats', []); empty.hidden = false; return; }
