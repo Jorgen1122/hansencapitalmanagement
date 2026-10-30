@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
   const invoice = event.data.object as Stripe.Invoice;
   const stripeCustomerId = invoice.customer as string;
 
-  // A deleted draft no longer exists in Stripe: remove it here too.
-  if (event.type === 'invoice.deleted') {
+  // Deleted drafts and voided invoices are removed from the portal's records (Stripe keeps the history).
+  if (event.type === 'invoice.deleted' || event.type === 'invoice.voided' || invoice.status === 'void') {
     const { error } = await supabaseAdmin.from('payments').delete().eq('stripe_invoice_id', invoice.id);
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     return new Response(JSON.stringify({ received: true, deleted: invoice.id }), { status: 200 });
