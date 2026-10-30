@@ -71,6 +71,7 @@ renderCashStats();
 await loadReports();
 await loadBilling();
 await loadExtras();
+await loadQuestions();
 await loadFlows();
 await loadLedgers();
 await loadOnboarding();
@@ -573,7 +574,7 @@ init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifP
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['start', 'overview', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (STAFF_VIEW && name === 'security') name = 'overview'; // security settings belong to the client's own login
@@ -811,6 +812,82 @@ tbody.appendChild(tr);
 });
 table.append(thead, tbody);
 empty.hidden = true;
+}
+
+// ---------- Questions from HCM (review items) ----------
+// HCM asks; the client answers here. Rows are readable only by this client (RLS); replies go through
+// review_item_reply. Rendered with textContent only.
+async function loadQuestions() {
+const list = document.getElementById('q-list'), empty = document.getElementById('q-empty');
+const { data, error } = await supabaseClient.from('review_items')
+.select('id, ref_no, category, item_date, amount, title, current_treatment, messages, status, resolution, resolved_at')
+.eq('client_id', currentClient.id).order('ref_no', { ascending: false });
+const items = error ? [] : (data || []);
+const waiting = items.filter(i => i.status === 'open');
+const nav = document.getElementById('nav-questions'), count = document.getElementById('nav-q-count');
+nav.hidden = !items.length;
+count.hidden = !waiting.length; count.textContent = waiting.length ? String(waiting.length) : '';
+const banner = document.getElementById('q-banner');
+banner.hidden = !waiting.length;
+if (waiting.length) document.getElementById('q-banner-title').textContent = waiting.length === 1 ? 'We have a question for you' : `We have ${waiting.length} questions for you`;
+list.textContent = '';
+empty.hidden = items.some(i => i.status !== 'resolved');
+const ref = n => 'R-' + String(n).padStart(3, '0');
+const order = { open: 0, answered: 1, resolved: 2 };
+const groups = [['open', 'Waiting on your answer'], ['answered', 'Answered, with your accountant'], ['resolved', 'Resolved']];
+for (const [st, label] of groups) {
+  const rows = items.filter(i => i.status === st).sort((a, b) => order[a.status] - order[b.status] || b.ref_no - a.ref_no);
+  if (!rows.length) continue;
+  const wrap = st === 'resolved' ? el('details', 'q-group') : el('div', 'q-group');
+  const h = el(st === 'resolved' ? 'summary' : 'h3', 'q-group-title', `${label} (${rows.length})`);
+  wrap.appendChild(h);
+  rows.forEach(i => {
+    const card = el('article', 'q-card ' + st);
+    const head = el('div', 'q-head');
+    head.appendChild(el('span', 'q-ref', ref(i.ref_no)));
+    const t = el('div', 'q-title-wrap');
+    t.appendChild(el('h4', 'q-title', i.title));
+    const meta = [i.category, i.item_date && fmtDate(i.item_date, { month: 'short', day: 'numeric', year: 'numeric' }), i.amount != null && money(i.amount, { cents: true })].filter(Boolean).join(' · ');
+    if (meta) t.appendChild(el('p', 'q-meta', meta));
+    head.appendChild(t);
+    head.appendChild(el('span', 'badge ' + (st === 'open' ? 'open' : st === 'answered' ? 'paid' : 'muted'), st === 'open' ? 'Needs your answer' : st === 'answered' ? 'Sent' : 'Resolved'));
+    card.appendChild(head);
+    if (i.current_treatment) { const p = el('p', 'q-treat'); p.appendChild(el('b', null, 'How it’s booked for now: ')); p.appendChild(document.createTextNode(i.current_treatment)); card.appendChild(p); }
+    const thread = el('div', 'q-thread');
+    (i.messages || []).forEach(m => {
+      const b = el('div', 'q-msg ' + (m.from === 'client' ? 'me' : 'hcm'));
+      b.appendChild(el('span', 'q-who', (m.from === 'client' ? 'You' : 'HCM') + ' · ' + new Date(m.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })));
+      b.appendChild(el('p', null, m.text));
+      thread.appendChild(b);
+    });
+    card.appendChild(thread);
+    if (st === 'resolved') {
+      if (i.resolution) { const p = el('p', 'q-res'); p.appendChild(el('b', null, 'How we handled it: ')); p.appendChild(document.createTextNode(i.resolution)); card.appendChild(p); }
+    } else if (!STAFF_VIEW) {
+      const form = el('form', 'q-form');
+      const ta = el('textarea'); ta.rows = 2; ta.maxLength = 4000; ta.required = true;
+      ta.placeholder = st === 'open' ? 'Type your answer…' : 'Add more detail (optional)…';
+      ta.setAttribute('aria-label', 'Your answer to ' + ref(i.ref_no));
+      const msg = el('div', 'form-alert'); msg.setAttribute('role', 'status'); msg.setAttribute('aria-live', 'polite');
+      const btn = el('button', 'btn btn-sm', st === 'open' ? 'Send answer' : 'Send');
+      btn.type = 'submit';
+      form.append(ta, btn, msg);
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = ta.value.trim();
+        if (!text) { msg.className = 'form-alert error'; msg.textContent = 'Write your answer first.'; return; }
+        btn.disabled = true; msg.className = 'form-alert'; msg.textContent = '';
+        const { error: err } = await supabaseClient.rpc('review_item_reply', { p_item: i.id, p_text: text });
+        btn.disabled = false;
+        if (err) { msg.className = 'form-alert error'; msg.textContent = 'Could not send. Please try again.'; return; }
+        await loadQuestions();
+      });
+      card.appendChild(form);
+    }
+    wrap.appendChild(card);
+  });
+  list.appendChild(wrap);
+}
 }
 
 // ---------- Analyst note, month-end checklist, deadlines ----------

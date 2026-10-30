@@ -30,6 +30,7 @@
 <nav class="site-nav portal-nav" aria-label="Dashboard">
   <a href="#start" id="nav-start" hidden>Setup</a>
   <a href="#overview" class="active" aria-current="page">Overview</a>
+  <a href="#questions" id="nav-questions" hidden>Questions<span class="nav-count" id="nav-q-count" hidden></span></a>
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
   <a href="#ledgers">Ledgers</a>
@@ -70,6 +71,15 @@ first month's books are closed.
 
 <div class="dash-body">
 <div class="dash-main">
+
+<section class="panel q-banner" id="q-banner" aria-labelledby="q-banner-title" hidden>
+<div>
+<p class="rail-label">Questions from HCM</p>
+<h2 class="q-banner-title" id="q-banner-title">We have a question for you</h2>
+<p class="q-banner-copy">Answer right here. It only takes a minute and keeps your books accurate.</p>
+</div>
+<a class="btn" href="#questions">Answer now</a>
+</section>
 
 <section class="panel onb-banner" id="onb-banner" aria-labelledby="onb-banner-title" hidden>
 <div class="onb-banner-txt">
@@ -389,6 +399,15 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 
 <!-- BILLING -->
+<div class="tab-panel" data-tab="questions" hidden>
+<section class="panel" aria-labelledby="q-title">
+<div class="panel-bar"><h2 class="panel-title" id="q-title">Questions from HCM</h2></div>
+<p class="panel-note q-intro">While working on your books we sometimes need you to confirm something, like who a deposit was from or whether a charge was business or personal. Your answers go straight to your accountant.</p>
+<div id="q-list" class="q-list"></div>
+<p class="empty-note panel-empty" id="q-empty" hidden>No questions right now. You're all caught up.</p>
+</section>
+</div>
+
 <div class="tab-panel" data-tab="billing" hidden>
 <div class="kpi-grid billing-stats" id="billing-stats"></div>
 <section class="panel" aria-labelledby="bill-title">

@@ -864,3 +864,33 @@ body.staff-view .led-btn, body.staff-view .upload-box, body.staff-view #onb-next
 body.staff-view [data-taxid], body.staff-view .onb-up, body.staff-view #pay-link, body.staff-view #book-btn,
 body.staff-view #tour-btn, body.staff-view #bank-add-btn, body.staff-view #bank-list .btn-plain, body.staff-view .portal-nav a[href="#security"], body.staff-view #sec-pill { display: none !important; }
 body.staff-view .ck-btn { pointer-events: none; }
+
+/* ---------- Questions from HCM ---------- */
+.nav-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: var(--gold); color: #071428; font-size: 0.7rem; font-weight: 700; vertical-align: 1px; }
+.q-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding: 18px 22px; border-left: 3px solid var(--gold); }
+.q-banner-title { font-size: 1.45rem; margin: 2px 0 4px; }
+.q-banner-copy { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.q-intro { margin: 14px 20px 0; }
+.q-list { display: grid; gap: 18px; padding: 16px 20px 20px; }
+.q-group { display: grid; gap: 12px; }
+.q-group-title { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin: 0; font-family: inherit; font-weight: 600; }
+details.q-group > summary { cursor: pointer; }
+.q-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; background: var(--panel); }
+.q-card.open { border-color: rgba(212, 175, 55, 0.45); }
+.q-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; }
+.q-ref { font-size: 0.78rem; font-weight: 700; color: var(--gold); padding-top: 3px; }
+.q-title { margin: 0; font-size: 1.08rem; font-family: inherit; font-weight: 600; }
+.q-meta { margin: 2px 0 0; font-size: 0.84rem; color: var(--dim); }
+.q-treat, .q-res { margin: 0; font-size: 0.88rem; color: var(--muted); }
+.q-thread { display: grid; gap: 8px; }
+.q-msg { max-width: 560px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); }
+.q-msg.me { justify-self: end; border-color: rgba(111, 211, 164, 0.35); background: rgba(111, 211, 164, 0.07); }
+.q-who { font-size: 0.74rem; color: var(--dim); }
+.q-msg p { margin: 4px 0 0; white-space: pre-wrap; }
+.q-form { display: grid; gap: 8px; }
+.q-form textarea { min-height: 70px; }
+.q-form .btn { justify-self: start; }
+.badge.muted { color: var(--dim); border-color: var(--line); }
+@media (max-width: 640px) { .q-head { grid-template-columns: auto 1fr; } .q-head .badge { grid-column: 2; justify-self: start; } }
+.portal-nav a.active .nav-count { background: #071428; color: var(--gold); }
+.status-pill, .sec-pill { white-space: nowrap; flex-shrink: 0; }
