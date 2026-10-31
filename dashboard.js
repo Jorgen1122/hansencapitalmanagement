@@ -1181,6 +1181,12 @@ function closeLedForm() { ledEditId = null; const f = document.getElementById('l
 document.getElementById('led-new-btn').addEventListener('click', () => openLedForm(ledView, null));
 document.getElementById('lf-cancel').addEventListener('click', closeLedForm);
 
+// Deletes a receipt photo from storage for good. Clients may only delete files in their own receipts folder.
+async function removeReceiptFile(path) {
+if (!path || STAFF_VIEW) return;
+try { await supabaseClient.storage.from(DOCS_BUCKET).remove([path]); } catch (e) { /* the daily cleanup removes anything left */ }
+}
+
 async function uploadReceipt(file) {
 if (!ALLOWED_TYPES.includes(file.type)) throw new Error('That file type isn’t accepted. Use a photo (JPG, PNG, HEIC) or a PDF.');
 if (file.size > MAX_FILE_BYTES) throw new Error('That file is over the 25 MB limit.');
@@ -1210,14 +1216,17 @@ status: 'submitted',
 };
 const label = btn.textContent;
 setBusy(btn, true, 'Saving…');
+let newPath = null;
+const oldPath = ledEditId ? ((ledEntries.find(x => x.id === ledEditId) || {}).receipt_path || null) : null;
 try {
 const file = document.getElementById('lf-file').files[0];
-if (file) rec.receipt_path = await uploadReceipt(file);
+if (file) { newPath = await uploadReceipt(file); rec.receipt_path = newPath; }
 const q = ledEditId
 ? supabaseClient.from('ledger_entries').update(rec).eq('id', ledEditId)
 : supabaseClient.from('ledger_entries').insert(Object.assign({ client_id: currentClient.id }, rec));
 const { error } = await q;
-if (error) throw error;
+if (error) { if (newPath) await removeReceiptFile(newPath); throw error; }
+if (newPath && oldPath && oldPath !== newPath) await removeReceiptFile(oldPath); // replaced: the old photo is deleted for good
 closeLedForm();
 await loadLedgers();
 } catch (err) {
@@ -1230,6 +1239,7 @@ if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Con
 btn.disabled = true;
 const { error } = await supabaseClient.from('ledger_entries').delete().eq('id', r.id);
 if (error) { btn.disabled = false; btn.textContent = 'Error'; return; }
+await removeReceiptFile(r.receipt_path); // the entry and its photo are both gone for good
 await loadLedgers();
 }
 
