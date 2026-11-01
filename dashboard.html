@@ -69,17 +69,17 @@ No KPI data has been posted yet. Your numbers will appear here once your
 first month's books are closed.
 </div>
 
+<section class="panel q-banner" id="q-banner" aria-labelledby="q-banner-title" hidden>
+<div class="q-banner-head">
+<p class="rail-label">Needs your attention</p>
+<h2 class="q-banner-title" id="q-banner-title">We need a few things from you</h2>
+<p class="q-banner-copy">Each one takes a minute and keeps your books accurate. Click an item to go straight to it.</p>
+</div>
+<ul class="attn-list" id="attn-list"></ul>
+</section>
+
 <div class="dash-body">
 <div class="dash-main">
-
-<section class="panel q-banner" id="q-banner" aria-labelledby="q-banner-title" hidden>
-<div>
-<p class="rail-label">Questions from HCM</p>
-<h2 class="q-banner-title" id="q-banner-title">We have a question for you</h2>
-<p class="q-banner-copy">Answer right here. It only takes a minute and keeps your books accurate.</p>
-</div>
-<a class="btn" href="#questions">Answer now</a>
-</section>
 
 <section class="panel onb-banner" id="onb-banner" aria-labelledby="onb-banner-title" hidden>
 <div class="onb-banner-txt">
@@ -370,6 +370,12 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <section class="panel" id="led-view" aria-labelledby="led-title" hidden>
 <div class="panel-bar"><h2 class="panel-title" id="led-title">Cash Out</h2><button class="btn btn-sm" id="led-new-btn" type="button">+ Add entry</button></div>
 <form id="led-form" class="led-form" novalidate hidden>
+<div class="led-hcm" id="lf-hcm" hidden>
+<p class="rail-label">HCM asked about this entry</p>
+<p class="led-hcm-note" id="lf-hcm-note"></p>
+<label>Your reply (optional)<input type="text" id="lf-reply" maxlength="1000" placeholder="e.g. Shop supplies, not for a job"></label>
+<p class="led-hcm-hint">Fix anything that needs changing below and press Send back to HCM. It goes back to your accountant for review.</p>
+</div>
 <div class="led-grid">
 <label>Date<input type="date" id="lf-date" required></label>
 <label>Amount<input type="text" id="lf-amount" inputmode="decimal" placeholder="0.00" required></label>
@@ -403,6 +409,7 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <section class="panel" aria-labelledby="q-title">
 <div class="panel-bar"><h2 class="panel-title" id="q-title">Questions from HCM</h2></div>
 <p class="panel-note q-intro">While working on your books we sometimes need you to confirm something, like who a deposit was from or whether a charge was business or personal. Your answers go straight to your accountant.</p>
+<div id="sb-list" class="q-list sb-list" hidden></div>
 <div id="q-list" class="q-list"></div>
 <p class="empty-note panel-empty" id="q-empty" hidden>No questions right now. You're all caught up.</p>
 </section>

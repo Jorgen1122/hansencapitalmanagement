@@ -662,9 +662,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .btn-sm { min-height: 38px; padding: 0 16px; font-size: 0.86rem; }
 .led-form { padding: 18px 20px; border-bottom: 1px solid var(--line); background: #08121F; }
 .led-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; }
-.led-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.led-grid label, .led-hcm label { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
 .led-grid .span-2 { grid-column: span 2; }
-.led-grid input, .led-grid select { min-height: 42px; padding: 9px 12px; font: 400 0.95rem var(--sans); color: var(--ivory); background: #07111F; border: 1px solid var(--line-2); border-radius: 10px; width: 100%; }
+.led-grid input, .led-grid select, .led-hcm input { min-height: 42px; padding: 9px 12px; font: 400 0.95rem var(--sans); color: var(--ivory); background: #07111F; border: 1px solid var(--line-2); border-radius: 10px; width: 100%; }
 .led-grid input[type="file"] { padding: 8px; font-size: 0.85rem; color: var(--muted); }
 .led-grid input[type="date"] { color-scheme: dark; }
 .led-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
@@ -894,3 +894,41 @@ details.q-group > summary { cursor: pointer; }
 @media (max-width: 640px) { .q-head { grid-template-columns: auto 1fr; } .q-head .badge { grid-column: 2; justify-self: start; } }
 .portal-nav a.active .nav-count { background: #071428; color: var(--gold); }
 .status-pill, .sec-pill { white-space: nowrap; flex-shrink: 0; }
+
+/* ---------- Needs your attention (Overview) ---------- */
+.q-banner { flex-direction: column; align-items: stretch; }
+.q-banner-head { min-width: 0; }
+.attn-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.attn-row { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); color: var(--text); font: inherit; }
+button.attn-row { cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+button.attn-row:hover { border-color: rgba(212, 175, 55, 0.55); background: rgba(212, 175, 55, 0.05); }
+.attn-tag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); min-width: 74px; }
+.attn-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.attn-title { color: var(--ivory); font-weight: 600; font-size: 0.93rem; overflow-wrap: anywhere; }
+.attn-sub { color: var(--muted); font-size: 0.84rem; line-height: 1.4; overflow-wrap: anywhere; }
+.attn-cta { color: var(--gold-hi); font-weight: 600; font-size: 0.84rem; white-space: nowrap; }
+@media (max-width: 560px) {
+  .attn-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; }
+  .attn-tag { grid-column: 1 / -1; min-width: 0; }
+}
+
+/* Month-end checklist items that need the client link to the page that resolves them */
+.close-list li.needs-you { display: block; }
+.ck-link { width: calc(100% + 16px); display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; margin: -6px -8px; box-sizing: border-box;
+  background: none; border: 0; border-radius: 8px; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.ck-link:hover { background: rgba(212, 175, 55, 0.07); }
+.ck-link:hover .ck-tag { background: rgba(212, 175, 55, 0.12); }
+.ck-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ck-detail { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+body.staff-view .ck-link { pointer-events: none; }
+
+/* Entries we sent back (Questions tab) and the note shown when fixing one */
+.sb-list { padding-bottom: 0; }
+.q-acts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.led-hcm { border: 1px solid rgba(212, 175, 55, 0.45); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; background: rgba(212, 175, 55, 0.05); display: grid; gap: 8px; }
+.led-hcm .rail-label { margin: 0; }
+.led-hcm-note { margin: 0; color: var(--ivory); white-space: pre-wrap; }
+.led-hcm-hint { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.led-btn.fix { color: var(--gold-hi); border-color: rgba(212, 175, 55, 0.55); }
+.q-banner { margin-top: 18px; }

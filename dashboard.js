@@ -814,24 +814,138 @@ table.append(thead, tbody);
 empty.hidden = true;
 }
 
+// ---------- Needs your attention (Overview) ----------
+// One list of everything waiting on the client: open questions, entries we sent back, and month-end
+// close items marked "Needs you". Every row takes the client straight to the place that resolves it.
+const attn = { questions: [], entries: [], close: [] };
+const ACTION_TAB = { ledgers: 'ledgers', documents: 'documents', questions: 'questions', billing: 'billing', reports: 'reports', start: 'start' };
+function closeTarget(i) {
+if (i.action && ACTION_TAB[i.action]) return ACTION_TAB[i.action];
+const t = (i.item || '') + ' ' + (i.detail || '');
+if (/receipt|document|statement|upload|w-?9|1099|paperwork/i.test(t)) return 'documents';
+if (/question|answer/i.test(t)) return 'questions';
+if (/cash|check|entr|ledger|job/i.test(t)) return 'ledgers';
+if (/invoice|bill|payment due/i.test(t)) return 'billing';
+return null;
+}
+const entryLabel = (r) => [LED_KINDS[r.kind] ? LED_KINDS[r.kind].title : 'Entry', r.party || r.memo, money(r.amount, { cents: true }), fmtDate(r.entry_date, { month: 'short', day: 'numeric' })].filter(Boolean).join(' · ');
+const TARGET_CTA = { documents: 'Upload', ledgers: 'Open ledgers', questions: 'Answer', billing: 'View billing', reports: 'View reports', start: 'Continue setup' };
+function goTab(tab) { if (location.hash === '#' + tab) { showTab(tab); window.scrollTo(0, 0); } else location.hash = '#' + tab; }
+
+function renderAttention() {
+const rows = [];
+attn.entries.forEach(r => rows.push({ tag: 'Entry', title: entryLabel(r), sub: r.hcm_note ? 'HCM: ' + r.hcm_note : 'We need a detail on this entry.', cta: 'Fix entry', go: () => fixEntry(r.id) }));
+attn.questions.forEach(q => rows.push({ tag: 'Question', title: q.title, sub: ((q.messages || []).filter(m => m.from === 'hcm').slice(-1)[0] || {}).text || '', cta: 'Answer', go: () => goTab('questions') }));
+attn.close.forEach(i => { const t = closeTarget(i); if (t === 'questions' && attn.questions.length) return; // the questions are already listed
+rows.push({ tag: fmtDate(i.period_end, { month: 'short' }) + ' close', title: i.item, sub: i.detail || '', cta: t ? (TARGET_CTA[t] || 'Open') : null, go: t ? () => goTab(t) : null }); });
+const banner = document.getElementById('q-banner');
+banner.hidden = !rows.length;
+if (!rows.length) return;
+document.getElementById('q-banner-title').textContent = rows.length === 1 ? 'We need one thing from you' : `We need ${rows.length} things from you`;
+const list = document.getElementById('attn-list');
+list.textContent = '';
+rows.forEach(r => {
+const li = el('li');
+const inner = el(r.go ? 'button' : 'div', 'attn-row');
+if (r.go) { inner.type = 'button'; inner.addEventListener('click', r.go); }
+inner.appendChild(el('span', 'attn-tag', r.tag));
+const txt = el('span', 'attn-txt');
+txt.appendChild(el('span', 'attn-title', r.title));
+if (r.sub) txt.appendChild(el('span', 'attn-sub', r.sub));
+inner.appendChild(txt);
+if (r.cta) inner.appendChild(el('span', 'attn-cta', r.cta + ' \u2192'));
+li.appendChild(inner);
+list.appendChild(li);
+});
+}
+
+// Entries we sent back, shown at the top of the Questions tab with a quick reply and a link to fix the entry.
+function renderSentBack(rows) {
+const box = document.getElementById('sb-list');
+box.textContent = '';
+box.hidden = !rows.length;
+if (!rows.length) return;
+const wrap = el('div', 'q-group');
+wrap.appendChild(el('h3', 'q-group-title', `Entries we sent back (${rows.length})`));
+rows.forEach(r => {
+const card = el('article', 'q-card open');
+const head = el('div', 'q-head');
+head.appendChild(el('span', 'q-ref', LED_KINDS[r.kind] ? LED_KINDS[r.kind].title : 'Entry'));
+const t = el('div', 'q-title-wrap');
+t.appendChild(el('h4', 'q-title', r.party || r.memo || 'Entry'));
+t.appendChild(el('p', 'q-meta', [r.category, fmtDate(r.entry_date, { month: 'short', day: 'numeric', year: 'numeric' }), money(r.amount, { cents: true }), r.memo && r.party ? r.memo : null].filter(Boolean).join(' · ')));
+head.appendChild(t);
+head.appendChild(el('span', 'badge overdue', 'Needs info'));
+card.appendChild(head);
+const thread = el('div', 'q-thread');
+if (r.hcm_note) { const b = el('div', 'q-msg hcm'); b.appendChild(el('span', 'q-who', 'HCM')); b.appendChild(el('p', null, r.hcm_note)); thread.appendChild(b); }
+if (r.client_note) { const b = el('div', 'q-msg me'); b.appendChild(el('span', 'q-who', 'You (earlier)')); b.appendChild(el('p', null, r.client_note)); thread.appendChild(b); }
+card.appendChild(thread);
+if (!STAFF_VIEW) {
+const form = el('form', 'q-form');
+const ta = el('textarea'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = 'Answer here, or fix the entry itself…';
+ta.setAttribute('aria-label', 'Your reply about ' + entryLabel(r));
+const msg = el('div', 'form-alert'); msg.setAttribute('role', 'status'); msg.setAttribute('aria-live', 'polite');
+const send = el('button', 'btn btn-sm', 'Send reply'); send.type = 'submit';
+const fix = el('button', 'btn-plain', 'Fix the entry'); fix.type = 'button';
+fix.addEventListener('click', () => fixEntry(r.id));
+const acts = el('div', 'q-acts'); acts.append(send, fix);
+form.append(ta, acts, msg);
+form.addEventListener('submit', async e => {
+e.preventDefault();
+const text = ta.value.trim();
+if (!text) { msg.className = 'form-alert error'; msg.textContent = 'Write your reply, or use Fix the entry.'; return; }
+send.disabled = true; msg.className = 'form-alert'; msg.textContent = '';
+const { error } = await supabaseClient.from('ledger_entries').update({ client_note: text, status: 'submitted' }).eq('id', r.id);
+send.disabled = false;
+if (error) { msg.className = 'form-alert error'; msg.textContent = 'Could not send. Please try again.'; return; }
+await Promise.all([loadQuestions(), loadLedgers()]);
+});
+card.appendChild(form);
+}
+wrap.appendChild(card);
+});
+box.appendChild(wrap);
+}
+
+// Open a sent-back entry's edit form on the Ledgers tab.
+async function fixEntry(id) {
+if (!ledEntries.some(x => x.id === id)) await loadLedgers();
+const r = ledEntries.find(x => x.id === id);
+if (!r) { goTab('ledgers'); return; }
+goTab('ledgers');
+setTimeout(() => {
+ledView = r.kind; renderLedgers();
+if (!STAFF_VIEW) openLedForm(r.kind, r);
+const target = STAFF_VIEW ? document.getElementById('led-view') : document.getElementById('led-form');
+target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}, 60);
+}
+
 // ---------- Questions from HCM (review items) ----------
 // HCM asks; the client answers here. Rows are readable only by this client (RLS); replies go through
 // review_item_reply. Rendered with textContent only.
 async function loadQuestions() {
 const list = document.getElementById('q-list'), empty = document.getElementById('q-empty');
-const { data, error } = await supabaseClient.from('review_items')
+const [qRes, eRes] = await Promise.all([
+supabaseClient.from('review_items')
 .select('id, ref_no, category, item_date, amount, title, current_treatment, messages, status, resolution, resolved_at')
-.eq('client_id', currentClient.id).order('ref_no', { ascending: false });
-const items = error ? [] : (data || []);
+.eq('client_id', currentClient.id).order('ref_no', { ascending: false }),
+supabaseClient.from('ledger_entries').select('*').eq('client_id', currentClient.id).eq('status', 'needs_info')
+.order('entry_date', { ascending: false }).limit(200),
+]);
+const items = qRes.error ? [] : (qRes.data || []);
+const sentBack = eRes.error ? [] : (eRes.data || []);
 const waiting = items.filter(i => i.status === 'open');
+attn.questions = waiting; attn.entries = sentBack;
 const nav = document.getElementById('nav-questions'), count = document.getElementById('nav-q-count');
-nav.hidden = !items.length;
-count.hidden = !waiting.length; count.textContent = waiting.length ? String(waiting.length) : '';
-const banner = document.getElementById('q-banner');
-banner.hidden = !waiting.length;
-if (waiting.length) document.getElementById('q-banner-title').textContent = waiting.length === 1 ? 'We have a question for you' : `We have ${waiting.length} questions for you`;
+nav.hidden = !items.length && !sentBack.length;
+const n = waiting.length + sentBack.length;
+count.hidden = !n; count.textContent = n ? String(n) : '';
+renderSentBack(sentBack);
+renderAttention();
 list.textContent = '';
-empty.hidden = items.some(i => i.status !== 'resolved');
+empty.hidden = items.some(i => i.status !== 'resolved') || sentBack.length > 0;
 const ref = n => 'R-' + String(n).padStart(3, '0');
 const order = { open: 0, answered: 1, resolved: 2 };
 const groups = [['open', 'Waiting on your answer'], ['answered', 'Answered, with your accountant'], ['resolved', 'Resolved']];
@@ -896,7 +1010,7 @@ async function loadExtras() {
 const cid = currentClient.id;
 const [noteRes, checkRes, dueRes] = await Promise.all([
 supabaseClient.from('analyst_notes').select('period_end, note').eq('client_id', cid).order('period_end', { ascending: false }).order('created_at', { ascending: false }).limit(1),
-supabaseClient.from('close_checklist').select('period_end, item, done, needs_client, sort_order').eq('client_id', cid).order('period_end', { ascending: false }).order('sort_order', { ascending: true }).limit(40),
+supabaseClient.from('close_checklist').select('*').eq('client_id', cid).order('period_end', { ascending: false }).order('sort_order', { ascending: true }).limit(40),
 supabaseClient.from('client_deadlines').select('title, due_date, detail, done').eq('client_id', cid).eq('done', false).order('due_date', { ascending: true }).limit(6),
 ]);
 
@@ -908,6 +1022,7 @@ document.getElementById('note-panel').hidden = false;
 }
 
 const items = (!checkRes.error && checkRes.data) || [];
+attn.close = items.filter(i => !i.done && i.needs_client); // any month, so an earlier month's request isn't lost
 if (items.length) {
 const period = items[0].period_end;
 const cur = items.filter(i => i.period_end === period);
@@ -919,13 +1034,21 @@ const list = document.getElementById('close-list');
 list.textContent = '';
 cur.forEach(i => {
 const li = el('li', i.done ? 'done' : (i.needs_client ? 'needs-you' : 'pending'));
-li.appendChild(el('span', 'ck', i.done ? '✓' : (i.needs_client ? '!' : '○')));
-li.appendChild(el('span', null, i.item));
-if (!i.done && i.needs_client) li.appendChild(el('span', 'ck-tag', 'Needs you'));
+const target = !i.done && i.needs_client ? closeTarget(i) : null;
+const row = target ? el('button', 'ck-link') : li;
+if (target) { row.type = 'button'; row.addEventListener('click', () => goTab(target)); }
+row.appendChild(el('span', 'ck', i.done ? '\u2713' : (i.needs_client ? '!' : '\u25CB')));
+const txt = el('span', 'ck-txt');
+txt.appendChild(el('span', null, i.item));
+if (!i.done && i.needs_client && i.detail) txt.appendChild(el('span', 'ck-detail', i.detail));
+row.appendChild(txt);
+if (!i.done && i.needs_client) row.appendChild(el('span', 'ck-tag', target ? 'Needs you \u2192' : 'Needs you'));
+if (target) li.appendChild(row);
 list.appendChild(li);
 });
 document.getElementById('close-card').hidden = false;
 }
+renderAttention();
 
 const dues = (!dueRes.error && dueRes.data) || [];
 if (dues.length) {
@@ -1143,7 +1266,7 @@ tr.appendChild(rc);
 const st = el('td'); st.appendChild(statusBadge(r.status)); tr.appendChild(st);
 const act = el('td', 'led-act');
 if (r.status !== 'posted') {
-const eb = el('button', 'led-btn', 'Edit'); eb.type = 'button'; eb.addEventListener('click', () => openLedForm(kind, r));
+const eb = el('button', 'led-btn' + (r.status === 'needs_info' ? ' fix' : ''), r.status === 'needs_info' ? 'Fix' : 'Edit'); eb.type = 'button'; eb.addEventListener('click', () => openLedForm(kind, r));
 const db = el('button', 'led-btn danger', 'Delete'); db.type = 'button'; db.addEventListener('click', () => deleteEntry(r, db));
 act.append(eb, db);
 }
@@ -1172,7 +1295,11 @@ document.getElementById('lf-party').value = row ? (row.party || '') : '';
 document.getElementById('lf-check').value = row ? (row.check_number || '') : '';
 document.getElementById('lf-memo').value = row ? (row.memo || '') : '';
 document.getElementById('lf-file').value = '';
-document.getElementById('lf-save').textContent = row ? 'Save changes' : 'Submit';
+const asked = row && row.status === 'needs_info';
+document.getElementById('lf-hcm').hidden = !asked;
+document.getElementById('lf-hcm-note').textContent = asked ? (row.hcm_note || 'We need a detail on this entry.') : '';
+document.getElementById('lf-reply').value = asked ? (row.client_note || '') : '';
+document.getElementById('lf-save').textContent = asked ? 'Send back to HCM' : (row ? 'Save changes' : 'Submit');
 setAlert('lf-msg', '');
 document.getElementById('led-form').hidden = false;
 document.getElementById('lf-amount').focus();
@@ -1214,6 +1341,8 @@ job_id: document.getElementById('lf-job').value || null,
 memo: document.getElementById('lf-memo').value.trim() || null,
 status: 'submitted',
 };
+const editing = ledEditId ? ledEntries.find(x => x.id === ledEditId) : null;
+if (editing && editing.status === 'needs_info') rec.client_note = document.getElementById('lf-reply').value.trim() || null;
 const label = btn.textContent;
 setBusy(btn, true, 'Saving…');
 let newPath = null;
@@ -1227,8 +1356,10 @@ const q = ledEditId
 const { error } = await q;
 if (error) { if (newPath) await removeReceiptFile(newPath); throw error; }
 if (newPath && oldPath && oldPath !== newPath) await removeReceiptFile(oldPath); // replaced: the old photo is deleted for good
+const wasAsked = editing && editing.status === 'needs_info';
 closeLedForm();
 await loadLedgers();
+if (wasAsked) await loadQuestions(); // it's back with HCM now, so it leaves the attention list
 } catch (err) {
 setAlert('lf-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err.message : friendlyError(err), 'error');
 } finally { setBusy(btn, false, label); }
@@ -1241,6 +1372,7 @@ const { error } = await supabaseClient.from('ledger_entries').delete().eq('id', 
 if (error) { btn.disabled = false; btn.textContent = 'Error'; return; }
 await removeReceiptFile(r.receipt_path); // the entry and its photo are both gone for good
 await loadLedgers();
+if (r.status === 'needs_info') await loadQuestions();
 }
 
 // ---------- job costing ----------
