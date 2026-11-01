@@ -932,3 +932,18 @@ body.staff-view .ck-link { pointer-events: none; }
 .led-hcm-hint { margin: 0; color: var(--muted); font-size: 0.82rem; }
 .led-btn.fix { color: var(--gold-hi); border-color: rgba(212, 175, 55, 0.55); }
 .q-banner { margin-top: 18px; }
+
+/* Portal header: brand + account actions on the first row, the dashboard tabs on their own full row,
+   so every tab is visible at every width (scrolls sideways only on narrow phones). */
+.portal-header .hdr-inner { flex-wrap: wrap; gap: 0 20px; min-height: 0; padding-top: 14px; padding-bottom: 12px; }
+.portal-header .brand { order: 1; }
+.portal-header .hdr-actions { order: 2; margin-left: auto; }
+.portal-header .portal-nav { order: 3; flex: 0 1 auto; width: fit-content; max-width: 100%; margin-top: 12px; justify-content: flex-start; }
+@media (max-width: 820px) {
+  .portal-header .portal-nav { margin-top: 10px; }
+}
+html:has(.portal-header) { scroll-padding-top: 150px; }
+/* On phones the tabs scroll sideways; a soft fade shows there are more tabs that way */
+.portal-nav.more-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.portal-nav.more-left { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.portal-nav.more-left.more-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }

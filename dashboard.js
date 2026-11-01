@@ -586,7 +586,19 @@ a.classList.toggle('active', on);
 if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
 });
 if (name === 'cash') renderCashChart();
+const on = document.querySelector('.portal-nav a.active');
+if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+navFade();
 }
+// Fade the edge of the tab bar when more tabs are hidden off-screen (phones).
+function navFade() {
+const n = document.querySelector('.portal-nav');
+if (!n) return;
+n.classList.toggle('more-left', n.scrollLeft > 4);
+n.classList.toggle('more-right', n.scrollLeft + n.clientWidth < n.scrollWidth - 4);
+}
+document.querySelector('.portal-nav').addEventListener('scroll', navFade, { passive: true });
+window.addEventListener('resize', navFade);
 window.addEventListener('hashchange', () => { showTab(location.hash.slice(1)); window.scrollTo(0, 0); });
 
 const money = (n, opts) => {
@@ -942,6 +954,7 @@ const nav = document.getElementById('nav-questions'), count = document.getElemen
 nav.hidden = !items.length && !sentBack.length;
 const n = waiting.length + sentBack.length;
 count.hidden = !n; count.textContent = n ? String(n) : '';
+navFade();
 renderSentBack(sentBack);
 renderAttention();
 list.textContent = '';
