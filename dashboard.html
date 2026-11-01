@@ -34,6 +34,7 @@
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
   <a href="#ledgers">Ledgers</a>
+  <a href="#people">People</a>
   <a href="#reports">Reports</a>
   <a href="#billing">Billing</a>
   <a href="#documents">Documents</a>
@@ -345,7 +346,7 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <p class="empty-note panel-empty" id="job-empty" hidden>No jobs yet. Add your first job, then tag your cash and check entries to it.</p>
 
 <div id="job-detail" class="job-detail" hidden>
-<div class="panel-bar"><h3 class="job-detail-title" id="jd-title">Job</h3><div class="led-actions"><button class="btn btn-sm" type="button" id="jd-time-btn">+ Log time &amp; miles</button><button class="btn-plain" type="button" id="jd-edit">Edit job</button><button class="btn-plain" type="button" id="jd-close">Close</button></div></div>
+<div class="panel-bar"><h3 class="job-detail-title" id="jd-title">Job</h3><div class="led-actions"><button class="btn btn-sm" type="button" id="jd-time-btn">+ Log time &amp; miles</button><button class="btn-plain" type="button" id="jd-edit">Edit job</button><button class="btn-plain danger" type="button" id="jd-delete">Delete job</button><button class="btn-plain" type="button" id="jd-close">Close</button></div></div>
 <form id="time-form" class="led-form" novalidate hidden>
 <div class="led-grid">
 <label>Date<input type="date" id="tf-date" required></label>
@@ -393,6 +394,31 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div class="table-scroll"><table class="fin-table led-table" id="led-table"></table></div>
 <p class="empty-note panel-empty" id="led-empty" hidden>Nothing logged yet.</p>
 <p class="panel-note">Entries you add show as Submitted until we review and post them to your books. You can edit or delete an entry until it's posted. If we need something, it's marked Needs info with a note.</p>
+</section>
+</div>
+
+<!-- PEOPLE (employees, contractors, vendors the client pays) -->
+<div class="tab-panel" data-tab="people" hidden>
+<section class="panel" aria-labelledby="ppl-title">
+<div class="panel-bar"><h2 class="panel-title" id="ppl-title">People you pay</h2><button class="btn btn-sm" id="ppl-new-btn" type="button">+ Add person</button></div>
+<p class="panel-note ppl-intro">Add your employees, helpers and contractors, and any vendor you pay by check, cash or Venmo. We use this list for W-9s, 1099s and year-end tax forms, and to reach someone if we need a form from them. Upload a W-9 here when you get one. It goes only to your accountant.</p>
+<form id="ppl-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label class="span-2">Name<input type="text" id="pf-name" maxlength="120" required placeholder="As it shows on checks or in Venmo"></label>
+<label>Type<select id="pf-type"><option value="contractor">Contractor / helper (1099)</option><option value="employee">Employee (W-2 payroll)</option><option value="vendor">Vendor / supplier</option></select></label>
+<label>Legal name (if different)<input type="text" id="pf-legal" maxlength="120"></label>
+<label>Email<input type="email" id="pf-email" maxlength="254" autocomplete="off"></label>
+<label>Phone<input type="tel" id="pf-phone" maxlength="40" autocomplete="off"></label>
+<label class="span-2">Mailing address<input type="text" id="pf-address" maxlength="300"></label>
+<label class="span-2">Notes<input type="text" id="pf-notes" maxlength="1000" placeholder="e.g. Helps on deck jobs, paid weekly by check"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="pf-save">Save</button><button class="btn-plain" type="button" id="pf-cancel">Cancel</button></div>
+<div id="pf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+<div class="table-scroll"><table class="fin-table led-table" id="ppl-table"></table></div>
+<p class="empty-note panel-empty" id="ppl-empty" hidden>No one added yet. Add the people you pay so we can collect their tax forms on time.</p>
+<div id="ppl-msg" class="form-alert ppl-msg" role="status" aria-live="polite"></div>
+<details class="ppl-archived" id="ppl-archived" hidden><summary></summary><ul id="ppl-archived-list"></ul></details>
 </section>
 </div>
 
@@ -449,8 +475,8 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 <div class="table-scroll">
 <table id="client-doc-table">
-<thead><tr><th>File</th><th>Uploaded</th><th>Status</th></tr></thead>
-<tbody id="client-doc-rows"><tr><td colspan="3" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
+<thead><tr><th>File</th><th>Uploaded</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+<tbody id="client-doc-rows"><tr><td colspan="4" class="empty-note"><span class="spinner" aria-hidden="true"></span>Loading documents…</td></tr></tbody>
 </table>
 </div>
 <p id="no-client-docs" class="empty-note" style="display:none;">No documents uploaded yet.</p>

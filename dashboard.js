@@ -74,6 +74,7 @@ await loadExtras();
 await loadQuestions();
 await loadFlows();
 await loadLedgers();
+await loadPeople();
 await loadOnboarding();
 if (STAFF_VIEW) document.querySelectorAll('.onb-step input, .onb-step select, .onb-step textarea').forEach((i) => { i.disabled = true; });
 showTab(location.hash.slice(1) || ((onb && onb.approved_at) || currentClient.engagement_status !== 'onboarding' ? '' : 'start'));
@@ -303,6 +304,16 @@ grid: { color: (c) => c.tick && c.tick.value === 0 ? 'rgba(244,240,230,0.45)' : 
 });
 }
 
+// A file the client uploaded is deleted for good: the record first, then the file itself.
+async function deleteUpload(d, btn) {
+if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Delete'; }, 4000); return; }
+btn.disabled = true;
+const { error } = await supabaseClient.from('documents').delete().eq('id', d.id).eq('direction', 'client_upload');
+if (error) { btn.disabled = false; btn.textContent = 'Error'; return; }
+try { await supabaseClient.storage.from(DOCS_BUCKET).remove([d.storage_path]); } catch (e) { /* the daily cleanup removes anything left */ }
+await loadDocuments();
+}
+
 async function loadDocuments() {
 const { data, error } = await supabaseClient
 .from('documents')
@@ -333,6 +344,10 @@ const td = document.createElement('td');
 td.textContent = v == null ? '' : String(v);
 tr.appendChild(td);
 });
+const act = el('td', 'led-act');
+if (d.storage_path) { const v = el('button', 'led-btn', 'View'); v.type = 'button'; v.addEventListener('click', () => signedOpen(d.storage_path, v)); act.appendChild(v); }
+if (!STAFF_VIEW) { const x = el('button', 'led-btn danger', 'Delete'); x.type = 'button'; x.addEventListener('click', () => deleteUpload(d, x)); act.appendChild(x); }
+tr.appendChild(act);
 clientRows.appendChild(tr);
 });
 }
@@ -574,7 +589,7 @@ init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifP
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'people', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (STAFF_VIEW && name === 'security') name = 'overview'; // security settings belong to the client's own login
@@ -829,8 +844,8 @@ empty.hidden = true;
 // ---------- Needs your attention (Overview) ----------
 // One list of everything waiting on the client: open questions, entries we sent back, and month-end
 // close items marked "Needs you". Every row takes the client straight to the place that resolves it.
-const attn = { questions: [], entries: [], close: [] };
-const ACTION_TAB = { ledgers: 'ledgers', documents: 'documents', questions: 'questions', billing: 'billing', reports: 'reports', start: 'start' };
+const attn = { questions: [], entries: [], close: [], w9: [] };
+const ACTION_TAB = { people: 'people', ledgers: 'ledgers', documents: 'documents', questions: 'questions', billing: 'billing', reports: 'reports', start: 'start' };
 function closeTarget(i) {
 if (i.action && ACTION_TAB[i.action]) return ACTION_TAB[i.action];
 const t = (i.item || '') + ' ' + (i.detail || '');
@@ -841,13 +856,14 @@ if (/invoice|bill|payment due/i.test(t)) return 'billing';
 return null;
 }
 const entryLabel = (r) => [LED_KINDS[r.kind] ? LED_KINDS[r.kind].title : 'Entry', r.party || r.memo, money(r.amount, { cents: true }), fmtDate(r.entry_date, { month: 'short', day: 'numeric' })].filter(Boolean).join(' · ');
-const TARGET_CTA = { documents: 'Upload', ledgers: 'Open ledgers', questions: 'Answer', billing: 'View billing', reports: 'View reports', start: 'Continue setup' };
+const TARGET_CTA = { people: 'Open People', documents: 'Upload', ledgers: 'Open ledgers', questions: 'Answer', billing: 'View billing', reports: 'View reports', start: 'Continue setup' };
 function goTab(tab) { if (location.hash === '#' + tab) { showTab(tab); window.scrollTo(0, 0); } else location.hash = '#' + tab; }
 
 function renderAttention() {
 const rows = [];
 attn.entries.forEach(r => rows.push({ tag: 'Entry', title: entryLabel(r), sub: r.hcm_note ? 'HCM: ' + r.hcm_note : 'We need a detail on this entry.', cta: 'Fix entry', go: () => fixEntry(r.id) }));
 attn.questions.forEach(q => rows.push({ tag: 'Question', title: q.title, sub: ((q.messages || []).filter(m => m.from === 'hcm').slice(-1)[0] || {}).text || '', cta: 'Answer', go: () => goTab('questions') }));
+attn.w9.forEach(p => rows.push({ tag: 'W-9', title: `Get a W-9 from ${p.display_name}`, sub: 'Needed before year-end 1099s. Upload it on the People tab, or tell us how to reach them.', cta: 'Open People', go: () => goTab('people') }));
 attn.close.forEach(i => { const t = closeTarget(i); if (t === 'questions' && attn.questions.length) return; // the questions are already listed
 rows.push({ tag: fmtDate(i.period_end, { month: 'short' }) + ' close', title: i.item, sub: i.detail || '', cta: t ? (TARGET_CTA[t] || 'Open') : null, go: t ? () => goTab(t) : null }); });
 const banner = document.getElementById('q-banner');
@@ -1388,6 +1404,151 @@ await loadLedgers();
 if (r.status === 'needs_info') await loadQuestions();
 }
 
+// =====================================================================
+// People: the employees, contractors and vendors the client pays.
+// Reads and writes go through client_people / client_person_save / client_person_remove, which only
+// touch the client's own list and never expose HCM's notes or tax-ID fields. Forms uploaded here go to
+// the client's people/ folder and are visible only to HCM. Rendering uses textContent only.
+// =====================================================================
+const PPL_TYPES = { contractor: 'Contractor', employee: 'Employee', vendor: 'Vendor' };
+const PPL_FORMS = ['W-9', 'W-4', 'I-9', 'Contract / agreement', 'Certificate of insurance', 'Other'];
+let people = [], pplEditId = null;
+
+async function loadPeople() {
+const { data, error } = await supabaseClient.rpc('client_people', { p_client: currentClient.id });
+people = error ? [] : (data || []);
+attn.w9 = people.filter(p => p.active && p.worker_type === 'contractor' && !p.w9_on_file);
+renderPeople();
+renderAttention();
+}
+
+function renderPeople() {
+const table = document.getElementById('ppl-table'), empty = document.getElementById('ppl-empty');
+table.textContent = '';
+const act = people.filter(p => p.active), arch = people.filter(p => !p.active);
+empty.hidden = act.length > 0;
+if (act.length) {
+const thead = el('thead'), hr = el('tr');
+th(hr, [['Name'], ['Type'], ['Contact'], ['Tax forms'], ['']]);
+thead.appendChild(hr);
+const tbody = el('tbody');
+act.forEach(p => {
+const tr = el('tr', p.worker_type === 'contractor' && !p.w9_on_file ? 'row-flag' : null);
+const nm = el('td'); nm.appendChild(el('span', 'ppl-name', p.display_name));
+if (p.legal_name && p.legal_name !== p.display_name) nm.appendChild(el('span', 'led-sub ppl-sub', p.legal_name));
+if (p.client_notes) nm.appendChild(el('span', 'led-sub ppl-sub', p.client_notes));
+tr.appendChild(nm);
+tr.appendChild(el('td', null, PPL_TYPES[p.worker_type] || p.worker_type));
+const ct = el('td', 'ppl-contact');
+if (p.email) { const a = el('a', 'led-link', p.email); a.href = 'mailto:' + p.email; ct.appendChild(a); }
+if (p.phone) { const a = el('a', 'led-link', p.phone); a.href = 'tel:' + p.phone.replace(/[^0-9+]/g, ''); ct.appendChild(a); }
+if (!p.email && !p.phone) ct.appendChild(el('span', 'led-sub', 'Add an email or phone'));
+tr.appendChild(ct);
+const fm = el('td');
+if (p.worker_type === 'contractor') fm.appendChild(el('span', 'badge ' + (p.w9_on_file ? 'paid' : 'overdue'), p.w9_on_file ? 'W-9 received' : 'W-9 needed'));
+else if (p.worker_type === 'employee') fm.appendChild(el('span', 'badge open', 'W-4 & I-9'));
+else fm.appendChild(el('span', 'led-sub', 'Usually none'));
+if (p.files) fm.appendChild(el('span', 'led-sub ppl-sub', `${p.files} form${p.files === 1 ? '' : 's'} sent to HCM${p.pending_files ? ' · being checked' : ''}`));
+tr.appendChild(fm);
+const ac = el('td', 'led-act');
+if (!STAFF_VIEW) {
+const up = el('label', 'led-btn ppl-up', 'Upload form');
+const sel = el('select', 'ppl-cat'); sel.setAttribute('aria-label', 'Form type for ' + p.display_name);
+PPL_FORMS.forEach(f => { const o = el('option', null, f); o.value = f; sel.appendChild(o); });
+sel.value = p.worker_type === 'employee' ? 'W-4' : 'W-9';
+const inp = el('input'); inp.type = 'file'; inp.hidden = true; inp.accept = 'application/pdf,image/*';
+inp.addEventListener('change', () => { const f = inp.files[0]; inp.value = ''; if (f) uploadPersonForm(p, f, sel.value, up); });
+up.appendChild(inp);
+const eb = el('button', 'led-btn', 'Edit'); eb.type = 'button'; eb.addEventListener('click', () => openPersonForm(p));
+const rb = el('button', 'led-btn danger', 'Remove'); rb.type = 'button'; rb.addEventListener('click', () => removePerson(p, rb));
+ac.append(sel, up, eb, rb);
+}
+tr.appendChild(ac);
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+}
+const det = document.getElementById('ppl-archived');
+det.hidden = !arch.length;
+if (arch.length) {
+det.querySelector('summary').textContent = `No longer working with (${arch.length})`;
+const ul = document.getElementById('ppl-archived-list'); ul.textContent = '';
+arch.forEach(p => {
+const li = el('li'); li.appendChild(el('span', null, `${p.display_name} · ${PPL_TYPES[p.worker_type] || ''}`));
+if (!STAFF_VIEW) { const b = el('button', 'led-btn', 'Restore'); b.type = 'button'; b.addEventListener('click', () => savePerson(p.id, { name: p.display_name, type: p.worker_type, email: p.email, phone: p.phone, address: p.address, notes: p.client_notes, legal: p.legal_name })); li.appendChild(b); }
+ul.appendChild(li);
+});
+}
+}
+
+function openPersonForm(p) {
+pplEditId = p ? p.id : null;
+document.getElementById('pf-name').value = p ? p.display_name : '';
+document.getElementById('pf-type').value = p ? p.worker_type : 'contractor';
+document.getElementById('pf-legal').value = p ? (p.legal_name || '') : '';
+document.getElementById('pf-email').value = p ? (p.email || '') : '';
+document.getElementById('pf-phone').value = p ? (p.phone || '') : '';
+document.getElementById('pf-address').value = p ? (p.address || '') : '';
+document.getElementById('pf-notes').value = p ? (p.client_notes || '') : '';
+setAlert('pf-msg', '');
+document.getElementById('ppl-form').hidden = false;
+document.getElementById('pf-name').focus();
+}
+function closePersonForm() { pplEditId = null; document.getElementById('ppl-form').hidden = true; }
+document.getElementById('ppl-new-btn').addEventListener('click', () => openPersonForm(null));
+document.getElementById('pf-cancel').addEventListener('click', closePersonForm);
+
+async function savePerson(id, v) {
+const { error } = await supabaseClient.rpc('client_person_save', {
+p_client: currentClient.id, p_id: id, p_name: v.name, p_type: v.type, p_email: v.email || null, p_phone: v.phone || null,
+p_address: v.address || null, p_notes: v.notes || null, p_legal: v.legal || null,
+});
+if (error) throw error;
+await loadPeople();
+}
+
+document.getElementById('ppl-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const v = { name: document.getElementById('pf-name').value.trim(), type: document.getElementById('pf-type').value,
+legal: document.getElementById('pf-legal').value.trim(), email: document.getElementById('pf-email').value.trim(),
+phone: document.getElementById('pf-phone').value.trim(), address: document.getElementById('pf-address').value.trim(),
+notes: document.getElementById('pf-notes').value.trim() };
+if (!v.name) { setAlert('pf-msg', 'Enter their name.', 'error'); return; }
+if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) { setAlert('pf-msg', 'That email address doesn’t look right.', 'error'); return; }
+const btn = document.getElementById('pf-save'); const label = btn.textContent;
+setBusy(btn, true, 'Saving…');
+try { await savePerson(pplEditId, v); closePersonForm(); setAlert('ppl-msg', 'Saved.', 'success'); }
+catch (err) { setAlert('pf-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err.message : friendlyError(err), 'error'); }
+finally { setBusy(btn, false, label); }
+});
+
+async function removePerson(p, btn) {
+if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Remove'; }, 4000); return; }
+btn.disabled = true;
+const { data, error } = await supabaseClient.rpc('client_person_remove', { p_client: currentClient.id, p_id: p.id });
+if (error) { btn.disabled = false; btn.textContent = 'Error'; return; }
+setAlert('ppl-msg', data === 'archived' ? `${p.display_name} moved to “No longer working with”. Their payment history stays for year-end forms.` : `${p.display_name} removed.`, 'success');
+await loadPeople();
+}
+
+async function uploadPersonForm(p, file, category, label) {
+setAlert('ppl-msg', '');
+if (!ALLOWED_TYPES.includes(file.type) && !/\.(pdf|jpe?g|png|heic)$/i.test(file.name)) { setAlert('ppl-msg', 'Use a PDF or a photo (JPG, PNG, HEIC).', 'error'); return; }
+if (file.size > MAX_FILE_BYTES) { setAlert('ppl-msg', 'That file is over the 25 MB limit.', 'error'); return; }
+label.classList.add('busy'); label.firstChild.textContent = 'Uploading…';
+const path = `${currentClient.id}/people/${p.id}/${Date.now()}_${sanitizeFilename(file.name)}`;
+try {
+const up = await supabaseClient.storage.from(DOCS_BUCKET).upload(path, file);
+if (up.error) throw up.error;
+const { error } = await supabaseClient.from('documents').insert({ client_id: currentClient.id, payee_id: p.id, filename: file.name, storage_path: path, category, direction: 'client_upload', status: 'pending' });
+if (error) throw error; // an orphaned upload is removed by the daily cleanup
+setAlert('ppl-msg', `${category} for ${p.display_name} sent to your accountant.`, 'success');
+await loadPeople();
+} catch (err) {
+setAlert('ppl-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err.message : friendlyError(err), 'error');
+} finally { label.classList.remove('busy'); label.firstChild.textContent = 'Upload form'; }
+}
+
 // ---------- job costing ----------
 function jobRollup(j) {
 const money_ = ledEntries.filter(r => r.job_id === j.id);
@@ -1513,6 +1674,18 @@ document.getElementById('jf-name').focus();
 }
 document.getElementById('job-new-btn').addEventListener('click', () => openJobForm(null));
 document.getElementById('jd-edit').addEventListener('click', () => { const j = ledJobs.find(x => x.id === openJobId); if (j) { openJobForm(j); document.getElementById('job-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });
+// Deleting a job removes it and its time & mileage log for good; money entries stay, untagged.
+document.getElementById('jd-delete').addEventListener('click', async (e) => {
+const btn = e.currentTarget; const j = ledJobs.find(x => x.id === openJobId); if (!j) return;
+if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm delete'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Delete job'; }, 4000); return; }
+btn.disabled = true;
+const { error } = await supabaseClient.from('jobs').delete().eq('id', j.id);
+btn.disabled = false; btn.dataset.armed = ''; btn.textContent = 'Delete job';
+if (error) { alertJob('Could not delete the job. Please try again.'); return; }
+openJobId = null; document.getElementById('job-detail').hidden = true;
+await loadLedgers();
+});
+function alertJob(m) { const el_ = document.getElementById('jf-msg'); if (el_) { el_.className = 'form-alert error'; el_.textContent = m; } }
 document.getElementById('jf-cancel').addEventListener('click', () => { jobEditId = null; document.getElementById('job-form').hidden = true; });
 document.getElementById('job-form').addEventListener('submit', async (e) => {
 e.preventDefault();
