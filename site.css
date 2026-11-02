@@ -968,3 +968,20 @@ html:has(.portal-header) { scroll-padding-top: 150px; }
   #ppl-table .led-act > * { margin: 4px 6px 0 0; }
 }
 .btn-plain.danger { color: var(--down); border-color: rgba(238, 146, 115, 0.45); }
+
+/* ---------- Receipts tab ---------- */
+.rc-intro { margin: 14px 20px 0; }
+.rc-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.rc-btn { cursor: pointer; }
+body.staff-view #rc-form { display: none; }
+
+/* ---------- Job costing: customers ---------- */
+.jobs-bar { margin-top: 0; }
+.seg-sm { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: #0E1D35; }
+.seg-sm .led-tab { padding: 6px 12px; font-size: 0.8rem; }
+.btn-sm-plain { min-height: 36px; padding: 0 14px; font-size: 0.85rem; }
+.row-dim td { opacity: 0.55; }
+.check-row { flex-direction: row !important; align-items: center; gap: 8px !important; }
+.check-row input { width: auto !important; min-height: 0 !important; }
+.cd-sub { margin: 0; padding: 12px 20px 0; }
+body.staff-view #cust-new-btn, body.staff-view #cd-visit-btn, body.staff-view #cd-edit, body.staff-view #cd-delete { display: none !important; }

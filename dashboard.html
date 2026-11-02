@@ -34,6 +34,7 @@
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
   <a href="#ledgers">Ledgers</a>
+  <a href="#receipts">Receipts</a>
   <a href="#people">People</a>
   <a href="#reports">Reports</a>
   <a href="#billing">Billing</a>
@@ -326,11 +327,57 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </div>
 
 <section class="panel" id="jobs-view" aria-labelledby="jobs-title">
-<div class="panel-bar"><h2 class="panel-title" id="jobs-title">Job Costing</h2><button class="btn btn-sm" id="job-new-btn" type="button">+ New job</button></div>
+<div class="panel-bar"><h2 class="panel-title" id="jobs-title">Job Costing</h2>
+<div class="led-actions jobs-bar"><div class="seg seg-sm" role="group" aria-label="View"><button type="button" class="led-tab" data-jobs="customers">Customers</button><button type="button" class="led-tab" data-jobs="jobs">All jobs</button></div>
+<button class="btn-plain btn-sm-plain" id="cust-new-btn" type="button">+ Customer</button><button class="btn btn-sm" id="job-new-btn" type="button">+ One-time job</button></div></div>
+
+<form id="cust-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label class="span-2">Customer name<input type="text" id="cf-name" maxlength="120" required placeholder="e.g. Amber Velasquez"></label>
+<label>How often<select id="cf-freq"><option value="weekly">Weekly</option><option value="every_2_weeks">Every 2 weeks</option><option value="every_3_weeks">Every 3 weeks</option><option value="monthly">Monthly</option><option value="as_needed" selected>As needed</option></select></label>
+<label>Usual price<input type="text" id="cf-price" inputmode="decimal" placeholder="0.00"></label>
+<label>Usual hours<input type="text" id="cf-hours" inputmode="decimal" placeholder="0.0"></label>
+<label>Round-trip miles<input type="text" id="cf-miles" inputmode="decimal" placeholder="0"></label>
+<label>Town<input type="text" id="cf-town" maxlength="80"></label>
+<label class="span-2">Address<input type="text" id="cf-address" maxlength="300"></label>
+<label>Phone<input type="tel" id="cf-phone" maxlength="40"></label>
+<label>Email<input type="email" id="cf-email" maxlength="254"></label>
+<label class="span-2">Notes<input type="text" id="cf-notes" maxlength="1000" placeholder="e.g. Whole house, key under mat"></label>
+<label class="check-row span-2"><input type="checkbox" id="cf-active" checked> Still a customer</label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="cf-save">Save customer</button><button class="btn-plain" type="button" id="cf-cancel">Cancel</button></div>
+<div id="cf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+
+<div id="cust-view">
+<div class="kpi-grid led-stats" id="cust-stats"></div>
+<div class="table-scroll"><table class="fin-table led-table" id="cust-table"></table></div>
+<p class="empty-note panel-empty" id="cust-empty" hidden>No regular customers yet. Add the people you clean or work for again and again, then log each visit in one click. One-time jobs go under All jobs.</p>
+<div id="cust-detail" class="job-detail" hidden>
+<div class="panel-bar"><h3 class="job-detail-title" id="cd-title">Customer</h3><div class="led-actions"><button class="btn btn-sm" type="button" id="cd-visit-btn">+ Log a visit</button><button class="btn-plain" type="button" id="cd-edit">Edit customer</button><button class="btn-plain danger" type="button" id="cd-delete">Delete customer</button><button class="btn-plain" type="button" id="cd-close">Close</button></div></div>
+<p class="led-sub cd-sub" id="cd-sub"></p>
+<form id="visit-form" class="led-form" novalidate hidden>
+<div class="led-grid">
+<label>Date<input type="date" id="vf-date" required></label>
+<label>Price<input type="text" id="vf-price" inputmode="decimal" placeholder="0.00"></label>
+<label>Hours<input type="text" id="vf-hours" inputmode="decimal" placeholder="0.0"></label>
+<label>Round-trip miles<input type="text" id="vf-miles" inputmode="decimal" placeholder="0"></label>
+<label class="span-2">Notes<input type="text" id="vf-notes" maxlength="500"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="vf-save">Save visit</button><button class="btn-plain" type="button" id="vf-cancel">Cancel</button></div>
+<div id="vf-msg" class="form-alert" role="alert" aria-live="polite"></div>
+</form>
+<div class="kpi-grid led-stats" id="cd-stats"></div>
+<div class="table-scroll"><table class="fin-table led-table" id="cd-visits"></table></div>
+</div>
+</div>
+
+<div id="jobs-list-view">
 <form id="job-form" class="led-form" novalidate hidden>
 <div class="led-grid">
 <label>Job name<input type="text" id="jf-name" maxlength="120" required placeholder="e.g. Smith deck rebuild / Weekly clean – Jones"></label>
-<label>Customer<input type="text" id="jf-customer" maxlength="120"></label>
+<label>Customer<select id="jf-cust-sel"><option value="">One-time (type the name)</option></select></label>
+<label id="jf-customer-row">Customer name<input type="text" id="jf-customer" maxlength="120"></label>
 <label>Type<input type="text" id="jf-type" maxlength="60" placeholder="e.g. Remodel, Recurring clean"></label>
 <label>Start date<input type="date" id="jf-start" required></label>
 <label>End date<input type="date" id="jf-end"></label>
@@ -365,7 +412,8 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div><p class="rail-label jd-label">Money tagged to this job</p><div class="table-scroll"><table class="fin-table led-table" id="jd-money"></table></div></div>
 </div>
 </div>
-<p class="panel-note">Revenue and costs come from Cash and Check entries tagged to each job. Mileage is valued at the 2026 IRS rate of 72.5&cent; a mile for reference.</p>
+</div>
+<p class="panel-note">Revenue and costs come from your books (what we have posted, imported or matched from the bank feed) plus Cash and Check entries you have tagged to a job that we haven't posted yet. Mileage is valued at the 2026 IRS rate of 72.5&cent; a mile for reference.</p>
 </section>
 
 <section class="panel" id="led-view" aria-labelledby="led-title" hidden>
@@ -394,6 +442,31 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <div class="table-scroll"><table class="fin-table led-table" id="led-table"></table></div>
 <p class="empty-note panel-empty" id="led-empty" hidden>Nothing logged yet.</p>
 <p class="panel-note">Entries you add show as Submitted until we review and post them to your books. You can edit or delete an entry until it's posted. If we need something, it's marked Needs info with a note.</p>
+</section>
+</div>
+
+<!-- RECEIPTS (for any purchase that isn't a cash or check entry) -->
+<div class="tab-panel" data-tab="receipts" hidden>
+<section class="panel" aria-labelledby="rc-title">
+<div class="panel-bar"><h2 class="panel-title" id="rc-title">Receipts</h2></div>
+<p class="panel-note rc-intro">Send us the receipt for anything you buy for the business that isn't a cash or check entry: card and debit purchases, online orders, fuel, subscriptions. The easiest time is right after you pay: snap a photo. We match each receipt to the transaction in your books. (Receipts for cash and check entries go on the entry itself, under Ledgers.)</p>
+<form id="rc-form" class="led-form" novalidate>
+<div class="rc-pick">
+<label class="btn btn-sm rc-btn">Take a photo<input type="file" id="rc-camera" accept="image/*" capture="environment" hidden></label>
+<label class="btn-plain rc-btn">Choose files<input type="file" id="rc-files" accept="image/*,application/pdf" multiple hidden></label>
+<span id="rc-chosen" class="led-sub">No receipt chosen yet.</span>
+</div>
+<div class="led-grid">
+<label>Date on receipt<input type="date" id="rc-date"></label>
+<label>Total<input type="text" id="rc-amount" inputmode="decimal" placeholder="0.00"></label>
+<label>Store or company<input type="text" id="rc-vendor" maxlength="120"></label>
+<label>What was it for?<input type="text" id="rc-note" maxlength="1000" placeholder="e.g. Supplies for the Amber clean"></label>
+</div>
+<div class="led-actions"><button class="btn btn-sm" type="submit" id="rc-send" disabled>Send receipt</button><span class="led-sub">The details are optional and help us match it faster. Sending several at once? Leave them blank.</span></div>
+<div id="rc-msg" class="form-alert" role="status" aria-live="polite"></div>
+</form>
+<div class="table-scroll"><table class="fin-table led-table" id="rc-table"></table></div>
+<p class="empty-note panel-empty" id="rc-empty" hidden>No receipts sent yet.</p>
 </section>
 </div>
 

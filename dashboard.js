@@ -589,7 +589,7 @@ init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifP
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'people', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'receipts', 'people', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (STAFF_VIEW && name === 'security') name = 'overview'; // security settings belong to the client's own login
@@ -1223,6 +1223,7 @@ const LABOR_CATS = ['Subcontract labor', 'Wages / helpers'];
 const MATERIAL_CATS = ['Materials & supplies'];
 const MILE_RATE = 0.725; // IRS 2026 business standard mileage rate
 let ledJobs = [], ledEntries = [], ledTime = [], ledView = 'jobs', ledEditId = null, jobEditId = null, openJobId = null;
+let ledCustomers = [], jobMoney = [], jobsMode = null, openCustId = null, custEditId = null;
 
 const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const num = (v) => { const n = Number(String(v || '').replace(/[$,\s]/g, '')); return isFinite(n) ? n : NaN; };
@@ -1238,22 +1239,26 @@ function th(row, labels) { labels.forEach(([t, cls]) => { const h = el('th', cls
 
 async function loadLedgers() {
 const cid = currentClient.id;
-const [j, e, t] = await Promise.all([
-supabaseClient.from('jobs').select('*').eq('client_id', cid).order('start_date', { ascending: false }).limit(500),
+const [j, e, t, cu, jm] = await Promise.all([
+supabaseClient.from('jobs').select('*').eq('client_id', cid).order('start_date', { ascending: false }).limit(3000),
 supabaseClient.from('ledger_entries').select('*').eq('client_id', cid).order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(3000),
 supabaseClient.from('job_time').select('*').eq('client_id', cid).order('work_date', { ascending: false }).limit(5000),
+supabaseClient.from('client_customers').select('*').eq('client_id', cid).order('name').limit(1000),
+supabaseClient.rpc('client_job_money', { p_client: cid }),
 ]);
 ledJobs = (!j.error && j.data) || []; ledEntries = (!e.error && e.data) || []; ledTime = (!t.error && t.data) || [];
+ledCustomers = (!cu.error && cu.data) || []; jobMoney = (!jm.error && jm.data) || [];
+if (jobsMode === null) jobsMode = ledCustomers.length ? 'customers' : 'jobs';
 renderLedgers();
 }
 
 function renderLedgers() {
-document.querySelectorAll('.led-tab').forEach(b => b.classList.toggle('active', b.dataset.led === ledView));
+document.querySelectorAll('.led-tab[data-led]').forEach(b => b.classList.toggle('active', b.dataset.led === ledView));
 document.getElementById('jobs-view').hidden = ledView !== 'jobs';
 document.getElementById('led-view').hidden = ledView === 'jobs';
 if (ledView === 'jobs') renderJobs(); else renderLedger(ledView);
 }
-document.querySelectorAll('.led-tab').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.led-tab[data-led]').forEach(b => b.addEventListener('click', () => {
 ledView = b.dataset.led; closeLedForm(); renderLedgers();
 }));
 
@@ -1337,6 +1342,108 @@ function closeLedForm() { ledEditId = null; const f = document.getElementById('l
 document.getElementById('led-new-btn').addEventListener('click', () => openLedForm(ledView, null));
 document.getElementById('lf-cancel').addEventListener('click', closeLedForm);
 
+// =====================================================================
+// Receipts: for any purchase that isn't a cash or check entry. The client sends the photo (and, if they like,
+// date / total / store / what it was for); HCM matches it to the transaction in the books.
+// =====================================================================
+let rcFiles = [];
+// Phone photos are shrunk in the browser before upload (long edge 1600 px, JPEG): sharp enough to read, ~10x smaller.
+async function shrinkImage(file) {
+if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size < 350 * 1024 || typeof createImageBitmap !== 'function') return file;
+try {
+const bmp = await createImageBitmap(file);
+const s = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.72));
+if (!blob || blob.size >= file.size) return file;
+return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+} catch (e) { return file; }
+}
+function pickReceipts(list) {
+rcFiles = Array.from(list || []).slice(0, 20);
+const n = rcFiles.length;
+document.getElementById('rc-chosen').textContent = n ? (n === 1 ? rcFiles[0].name : `${n} receipts chosen`) : 'No receipt chosen yet.';
+document.getElementById('rc-send').disabled = !n;
+document.getElementById('rc-send').textContent = n > 1 ? `Send ${n} receipts` : 'Send receipt';
+setAlert('rc-msg', '');
+}
+['rc-camera', 'rc-files'].forEach(id => document.getElementById(id).addEventListener('change', (e) => { pickReceipts(e.target.files); e.target.value = ''; }));
+
+async function loadReceipts() {
+const { data, error } = await supabaseClient.rpc('client_receipts', { p_client: currentClient.id });
+const rows = error ? [] : (data || []);
+const table = document.getElementById('rc-table'), empty = document.getElementById('rc-empty');
+table.textContent = '';
+empty.hidden = rows.length > 0;
+if (!rows.length) return;
+const thead = el('thead'), hr = el('tr');
+th(hr, [['Sent'], ['Date'], ['Store'], ['Total', 'r'], ['What for'], ['Status'], ['']]);
+thead.appendChild(hr);
+const tbody = el('tbody');
+rows.forEach(r => {
+const tr = el('tr');
+tr.appendChild(el('td', null, ledDate(String(r.created_at).slice(0, 10))));
+tr.appendChild(el('td', null, r.receipt_date ? ledDate(r.receipt_date) : '—'));
+tr.appendChild(el('td', null, r.vendor || '—'));
+tr.appendChild(el('td', 'r', r.total != null ? money(r.total, { cents: true }) : '—'));
+tr.appendChild(el('td', 'led-memo', r.note || ''));
+const st = el('td');
+st.appendChild(el('span', 'badge ' + (r.status === 'matched' ? 'paid' : r.status === 'not_needed' ? 'muted' : 'open'),
+r.status === 'matched' ? 'Matched' : r.status === 'not_needed' ? 'Not needed' : 'Received'));
+if (r.status === 'matched' && r.matched_on) st.appendChild(el('span', 'led-sub ppl-sub', `to the ${ledDate(r.matched_on)} transaction`));
+tr.appendChild(st);
+const act = el('td', 'led-act');
+const v = el('button', 'led-btn', 'View'); v.type = 'button'; v.addEventListener('click', () => signedOpen(r.storage_path, v)); act.appendChild(v);
+if (r.status !== 'matched' && !STAFF_VIEW) {
+const x = el('button', 'led-btn danger', 'Delete'); x.type = 'button';
+x.addEventListener('click', async () => {
+if (x.dataset.armed !== '1') { x.dataset.armed = '1'; x.textContent = 'Confirm'; setTimeout(() => { x.dataset.armed = ''; x.textContent = 'Delete'; }, 4000); return; }
+x.disabled = true;
+const { data: path, error: err } = await supabaseClient.rpc('client_receipt_remove', { p_client: currentClient.id, p_id: r.id });
+if (err) { x.disabled = false; x.textContent = 'Error'; return; }
+await removeReceiptFile(path);
+await loadReceipts();
+});
+act.appendChild(x);
+}
+tr.appendChild(act);
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+}
+
+document.getElementById('rc-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+if (!rcFiles.length) return;
+const single = rcFiles.length === 1;
+const amtRaw = document.getElementById('rc-amount').value.trim();
+const amount = amtRaw ? num(amtRaw) : null;
+if (single && amtRaw && !(amount >= 0)) { setAlert('rc-msg', 'Enter the total as a number, or leave it blank.', 'error'); return; }
+const btn = document.getElementById('rc-send'); const label = btn.textContent; setBusy(btn, true, 'Sending…');
+let sent = 0; const failed = [];
+for (const original of rcFiles) {
+try {
+if (!ALLOWED_TYPES.includes(original.type) && !/\.(pdf|jpe?g|png|heic|heif|webp)$/i.test(original.name)) throw new Error('type');
+const file = await shrinkImage(original);
+if (file.size > MAX_FILE_BYTES) throw new Error('size');
+const path = await uploadReceipt(file);
+const { error } = await supabaseClient.rpc('client_receipt_add', {
+p_client: currentClient.id, p_path: path,
+p_date: single ? (document.getElementById('rc-date').value || null) : null, p_amount: single ? amount : null,
+p_vendor: single ? (document.getElementById('rc-vendor').value.trim() || null) : null,
+p_note: single ? (document.getElementById('rc-note').value.trim() || null) : null,
+});
+if (error) { await removeReceiptFile(path); throw error; }
+sent++;
+} catch (err) { failed.push(original.name); }
+}
+setBusy(btn, false, label);
+if (sent) { ['rc-date', 'rc-amount', 'rc-vendor', 'rc-note'].forEach(id => { document.getElementById(id).value = ''; }); pickReceipts([]); }
+setAlert('rc-msg', failed.length ? `${sent} sent. Couldn’t send: ${failed.join(', ')} (use a photo or PDF under 25 MB).` : `${sent === 1 ? 'Receipt' : sent + ' receipts'} sent to your accountant. Thank you!`, failed.length ? 'error' : 'success');
+await loadReceipts();
+});
+
 // Deletes a receipt photo from storage for good. Clients may only delete files in their own receipts folder.
 async function removeReceiptFile(path) {
 if (!path || STAFF_VIEW) return;
@@ -1378,7 +1485,7 @@ let newPath = null;
 const oldPath = ledEditId ? ((ledEntries.find(x => x.id === ledEditId) || {}).receipt_path || null) : null;
 try {
 const file = document.getElementById('lf-file').files[0];
-if (file) { newPath = await uploadReceipt(file); rec.receipt_path = newPath; }
+if (file) { newPath = await uploadReceipt(await shrinkImage(file)); rec.receipt_path = newPath; }
 const q = ledEditId
 ? supabaseClient.from('ledger_entries').update(rec).eq('id', ledEditId)
 : supabaseClient.from('ledger_entries').insert(Object.assign({ client_id: currentClient.id }, rec));
@@ -1550,22 +1657,214 @@ setAlert('ppl-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err
 }
 
 // ---------- job costing ----------
+// Money for a job: what is in the books (posted, imported or from the bank feed, via client_job_money) plus the
+// client's own cash and check entries that aren't posted yet. A posted entry is counted once, from the books.
 function jobRollup(j) {
-const money_ = ledEntries.filter(r => r.job_id === j.id);
-const rev = money_.filter(r => dirOf(r.kind) === 'in').reduce((a, r) => a + Number(r.amount), 0);
-const outs = money_.filter(r => dirOf(r.kind) === 'out');
-const cost = outs.reduce((a, r) => a + Number(r.amount), 0);
-const mat = outs.filter(r => MATERIAL_CATS.includes(r.category)).reduce((a, r) => a + Number(r.amount), 0);
-const lab = outs.filter(r => LABOR_CATS.includes(r.category)).reduce((a, r) => a + Number(r.amount), 0);
+const book = jobMoney.filter(m => m.job_id === j.id);
+const pending = ledEntries.filter(r => r.job_id === j.id && r.status !== 'posted');
+const sum = (arr) => arr.reduce((a, x) => a + Number(x.amount), 0);
+const pIn = pending.filter(r => dirOf(r.kind) === 'in'), pOut = pending.filter(r => dirOf(r.kind) === 'out');
+const rev = sum(book.filter(m => m.direction === 'in')) + sum(pIn);
+const bOut = book.filter(m => m.direction === 'out');
+const cost = sum(bOut) + sum(pOut);
+const mat = sum(bOut.filter(m => m.bucket === 'materials')) + sum(pOut.filter(r => MATERIAL_CATS.includes(r.category)));
+const lab = sum(bOut.filter(m => m.bucket === 'labor')) + sum(pOut.filter(r => LABOR_CATS.includes(r.category)));
 const time = ledTime.filter(t => t.job_id === j.id);
 const hours = time.reduce((a, t) => a + Number(t.hours), 0);
 const miles = time.reduce((a, t) => a + Number(t.miles_to) + Number(t.miles_back), 0);
 const mileCost = miles * MILE_RATE;
 const profit = rev - cost - mileCost;
-return { rev, cost, mat, lab, other: cost - mat - lab, hours, miles, mileCost, profit, margin: rev ? profit / rev : null, perHour: hours ? profit / hours : null, entries: money_, time };
+const entries = [
+...book.map(m => ({ date: m.entry_date, label: m.direction === 'in' ? 'Income' : 'Cost', category: m.account, memo: m.memo, amount: Number(m.amount), dir: m.direction, status: 'posted' })),
+...pending.map(r => ({ date: r.entry_date, label: LED_KINDS[r.kind].title, category: r.category, memo: r.memo, amount: Number(r.amount), dir: dirOf(r.kind), status: r.status })),
+].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+return { rev, cost, mat, lab, other: cost - mat - lab, hours, miles, mileCost, profit, margin: rev ? profit / rev : null, perHour: hours ? profit / hours : null, entries, time };
 }
 
+// ---------- job costing: customers (recurring) and all jobs ----------
+const FREQ = { weekly: 'Weekly', every_2_weeks: 'Every 2 weeks', every_3_weeks: 'Every 3 weeks', monthly: 'Monthly', as_needed: 'As needed' };
 function renderJobs() {
+document.querySelectorAll('[data-jobs]').forEach(b => b.classList.toggle('active', b.dataset.jobs === jobsMode));
+document.getElementById('cust-view').hidden = jobsMode !== 'customers';
+document.getElementById('jobs-list-view').hidden = jobsMode !== 'jobs';
+fillCustomerSelect();
+if (jobsMode === 'customers') renderCustomers(); else renderJobList();
+}
+document.querySelectorAll('[data-jobs]').forEach(b => b.addEventListener('click', () => { jobsMode = b.dataset.jobs; renderJobs(); }));
+
+function custRollup(c) {
+const jobs = ledJobs.filter(j => j.customer_id === c.id);
+const rolls = jobs.map(j => ({ j, r: jobRollup(j) }));
+const t = rolls.reduce((a, x) => ({ rev: a.rev + x.r.rev, profit: a.profit + x.r.profit, hours: a.hours + x.r.hours, miles: a.miles + x.r.miles }), { rev: 0, profit: 0, hours: 0, miles: 0 });
+const last = jobs.reduce((m, j) => (j.start_date > m ? j.start_date : m), '');
+return { jobs, rolls, ...t, last, perHour: t.hours ? t.profit / t.hours : null, avg: jobs.length ? t.rev / jobs.length : null };
+}
+
+function renderCustomers() {
+const table = document.getElementById('cust-table'), empty = document.getElementById('cust-empty');
+table.textContent = '';
+const list = ledCustomers.map(c => ({ c, r: custRollup(c) })).sort((a, b) => (b.c.active - a.c.active) || (b.r.rev - a.r.rev));
+const oneTime = ledJobs.filter(j => !j.customer_id);
+const allRev = list.reduce((a, x) => a + x.r.rev, 0);
+statCards('cust-stats', ledCustomers.length ? [
+['Regular customers', String(ledCustomers.filter(c => c.active).length), `${oneTime.length} one-time job${oneTime.length === 1 ? '' : 's'}`],
+['Revenue from regulars', money(allRev), list.length && list[0].r.rev ? `Top: ${list[0].c.name} (${pctTxt(list[0].r.rev / (allRev || 1))})` : ''],
+['Visits', String(list.reduce((a, x) => a + x.r.jobs.length, 0)), ''],
+['Profit per hour', (() => { const h = list.reduce((a, x) => a + x.r.hours, 0); return h ? money(list.reduce((a, x) => a + x.r.profit, 0) / h, { cents: true }) : '—'; })(), 'After supplies and mileage'],
+] : []);
+empty.hidden = list.length > 0;
+if (!list.length) { document.getElementById('cust-detail').hidden = true; return; }
+const thead = el('thead'), hr = el('tr');
+th(hr, [['Customer'], ['How often'], ['Visits', 'r'], ['Avg price', 'r'], ['Revenue', 'r'], ['Profit', 'r'], ['Hours', 'r'], ['$/hour', 'r'], ['Last visit']]);
+thead.appendChild(hr);
+const tbody = el('tbody');
+list.forEach(({ c, r }) => {
+const tr = el('tr', 'job-row' + (openCustId === c.id ? ' is-open' : '') + (c.active ? '' : ' row-dim'));
+const nm = el('td'); const b = el('button', 'job-open', c.name); b.type = 'button'; b.addEventListener('click', () => openCustomer(c.id)); nm.appendChild(b);
+if (c.town) nm.appendChild(el('span', 'led-sub', ' ' + c.town));
+tr.appendChild(nm);
+tr.appendChild(el('td', null, c.active ? (FREQ[c.frequency] || '—') : 'No longer a customer'));
+tr.appendChild(el('td', 'r', String(r.jobs.length)));
+tr.appendChild(el('td', 'r', r.avg == null ? '—' : money(r.avg)));
+tr.appendChild(el('td', 'r', money(r.rev)));
+tr.appendChild(el('td', 'r ' + (r.profit < 0 ? 'neg' : ''), money(r.profit)));
+tr.appendChild(el('td', 'r', r.hours ? r.hours.toFixed(1) : '—'));
+tr.appendChild(el('td', 'r', r.perHour == null ? '—' : money(r.perHour, { cents: true })));
+tr.appendChild(el('td', null, r.last ? ledDate(r.last) : '—'));
+tbody.appendChild(tr);
+});
+table.append(thead, tbody);
+if (openCustId) renderCustomerDetail();
+}
+
+function openCustomer(id) { openCustId = id; document.getElementById('visit-form').hidden = true; renderCustomers(); document.getElementById('cust-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+document.getElementById('cd-close').addEventListener('click', () => { openCustId = null; document.getElementById('cust-detail').hidden = true; renderCustomers(); });
+
+function renderCustomerDetail() {
+const c = ledCustomers.find(x => x.id === openCustId); const box = document.getElementById('cust-detail');
+if (!c) { box.hidden = true; return; }
+const r = custRollup(c);
+document.getElementById('cd-title').textContent = c.name;
+document.getElementById('cd-sub').textContent = [FREQ[c.frequency], c.default_price != null ? `usually ${money(c.default_price)}` : null, c.town, c.address, c.phone, c.email, c.notes].filter(Boolean).join(' · ');
+statCards('cd-stats', [
+['Visits', String(r.jobs.length), r.last ? `Last ${ledDate(r.last)}` : ''],
+['Revenue', money(r.rev, { cents: true }), r.avg == null ? '' : `${money(r.avg, { cents: true })} a visit`],
+['Profit', money(r.profit, { cents: true }), r.rev ? `${pctTxt(r.profit / r.rev)} margin` : ''],
+['Hours · miles', `${r.hours.toFixed(1)} h · ${r.miles.toFixed(0)} mi`, r.perHour == null ? '' : `${money(r.perHour, { cents: true })} profit per hour`],
+]);
+const t = document.getElementById('cd-visits'); t.textContent = '';
+const h = el('thead'), hr = el('tr'); th(hr, [['Date'], ['Price', 'r'], ['In the books', 'r'], ['Hours', 'r'], ['Miles', 'r'], ['Profit', 'r'], ['']]); h.appendChild(hr);
+const tb = el('tbody');
+r.rolls.sort((a, b) => String(b.j.start_date).localeCompare(String(a.j.start_date))).forEach(({ j, r: x }) => {
+const tr = el('tr');
+tr.appendChild(el('td', null, ledDate(j.start_date)));
+tr.appendChild(el('td', 'r', j.quoted_amount != null ? money(j.quoted_amount, { cents: true }) : '—'));
+tr.appendChild(el('td', 'r', x.rev ? money(x.rev, { cents: true }) : '—'));
+tr.appendChild(el('td', 'r', x.hours ? x.hours.toFixed(1) : '—'));
+tr.appendChild(el('td', 'r', x.miles ? x.miles.toFixed(0) : '—'));
+tr.appendChild(el('td', 'r ' + (x.profit < 0 ? 'neg' : ''), money(x.profit)));
+const act = el('td', 'led-act'); const ob = el('button', 'led-btn', 'Details'); ob.type = 'button';
+ob.addEventListener('click', () => { jobsMode = 'jobs'; openJobId = j.id; renderJobs(); document.getElementById('job-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+act.appendChild(ob); tr.appendChild(act); tb.appendChild(tr);
+});
+if (!r.rolls.length) { const tr = el('tr'); const td = el('td', 'empty-note', 'No visits yet. Use “Log a visit”.'); td.colSpan = 7; tr.appendChild(td); tb.appendChild(tr); }
+t.append(h, tb);
+box.hidden = false;
+}
+
+// customer form
+function openCustForm(c) {
+custEditId = c ? c.id : null;
+const v = (id, x) => { document.getElementById(id).value = x == null ? '' : x; };
+v('cf-name', c && c.name); v('cf-freq', c ? c.frequency : 'as_needed'); v('cf-price', c && c.default_price != null ? Number(c.default_price).toFixed(2) : '');
+v('cf-hours', c && c.default_hours); v('cf-miles', c && c.round_trip_miles); v('cf-town', c && c.town); v('cf-address', c && c.address);
+v('cf-phone', c && c.phone); v('cf-email', c && c.email); v('cf-notes', c && c.notes);
+document.getElementById('cf-active').checked = c ? c.active : true;
+setAlert('cf-msg', '');
+document.getElementById('cust-form').hidden = false;
+document.getElementById('cf-name').focus();
+}
+document.getElementById('cust-new-btn').addEventListener('click', () => { jobsMode = 'customers'; renderJobs(); openCustForm(null); });
+document.getElementById('cd-edit').addEventListener('click', () => { const c = ledCustomers.find(x => x.id === openCustId); if (c) { openCustForm(c); document.getElementById('cust-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });
+document.getElementById('cf-cancel').addEventListener('click', () => { custEditId = null; document.getElementById('cust-form').hidden = true; });
+document.getElementById('cust-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const name = document.getElementById('cf-name').value.trim();
+const nOrNull = (id) => { const t = document.getElementById(id).value.trim(); if (!t) return null; const n = num(t); return n >= 0 ? n : NaN; };
+const price = nOrNull('cf-price'), hours = nOrNull('cf-hours'), miles = nOrNull('cf-miles');
+const email = document.getElementById('cf-email').value.trim();
+if (!name) { setAlert('cf-msg', 'Enter the customer’s name.', 'error'); return; }
+if ([price, hours, miles].some(x => Number.isNaN(x))) { setAlert('cf-msg', 'Price, hours and miles must be numbers.', 'error'); return; }
+if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setAlert('cf-msg', 'That email address doesn’t look right.', 'error'); return; }
+const rec = { name, frequency: document.getElementById('cf-freq').value, default_price: price, default_hours: hours, round_trip_miles: miles,
+town: document.getElementById('cf-town').value.trim() || null, address: document.getElementById('cf-address').value.trim() || null,
+phone: document.getElementById('cf-phone').value.trim() || null, email: email || null, notes: document.getElementById('cf-notes').value.trim() || null,
+active: document.getElementById('cf-active').checked };
+const btn = document.getElementById('cf-save'); const label = btn.textContent; setBusy(btn, true, 'Saving…');
+const q = custEditId ? supabaseClient.from('client_customers').update(rec).eq('id', custEditId) : supabaseClient.from('client_customers').insert(Object.assign({ client_id: currentClient.id }, rec));
+const { error } = await q;
+setBusy(btn, false, label);
+if (error) { setAlert('cf-msg', /duplicate|unique/i.test(error.message) ? 'You already have a customer with that name.' : friendlyError(error), 'error'); return; }
+custEditId = null; document.getElementById('cust-form').hidden = true;
+await loadLedgers();
+});
+document.getElementById('cd-delete').addEventListener('click', async (e) => {
+const btn = e.currentTarget; const c = ledCustomers.find(x => x.id === openCustId); if (!c) return;
+if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm delete'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Delete customer'; }, 4000); return; }
+btn.disabled = true;
+const { error } = await supabaseClient.from('client_customers').delete().eq('id', c.id);
+btn.disabled = false; btn.dataset.armed = ''; btn.textContent = 'Delete customer';
+if (error) { setAlert('cf-msg', friendlyError(error), 'error'); return; }
+openCustId = null; document.getElementById('cust-detail').hidden = true;
+await loadLedgers(); // their visits stay, as one-time jobs under All jobs
+});
+
+// log a visit: one job for that customer and date, with its time & mileage
+document.getElementById('cd-visit-btn').addEventListener('click', () => {
+const c = ledCustomers.find(x => x.id === openCustId); if (!c) return;
+document.getElementById('vf-date').value = todayISO();
+document.getElementById('vf-price').value = c.default_price != null ? Number(c.default_price).toFixed(2) : '';
+document.getElementById('vf-hours').value = c.default_hours != null ? Number(c.default_hours) : '';
+document.getElementById('vf-miles').value = c.round_trip_miles != null ? Number(c.round_trip_miles) : '';
+document.getElementById('vf-notes').value = '';
+setAlert('vf-msg', '');
+document.getElementById('visit-form').hidden = false;
+document.getElementById('vf-date').focus();
+});
+document.getElementById('vf-cancel').addEventListener('click', () => { document.getElementById('visit-form').hidden = true; });
+document.getElementById('visit-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const c = ledCustomers.find(x => x.id === openCustId); if (!c) return;
+const date = document.getElementById('vf-date').value;
+const nOrNull = (id) => { const t = document.getElementById(id).value.trim(); if (!t) return null; const n = num(t); return n >= 0 ? n : NaN; };
+const price = nOrNull('vf-price'), hours = nOrNull('vf-hours'), miles = nOrNull('vf-miles');
+if (!date) { setAlert('vf-msg', 'Enter the date.', 'error'); return; }
+if ([price, hours, miles].some(x => Number.isNaN(x))) { setAlert('vf-msg', 'Price, hours and miles must be numbers.', 'error'); return; }
+const btn = document.getElementById('vf-save'); const label = btn.textContent; setBusy(btn, true, 'Saving…');
+const notes = document.getElementById('vf-notes').value.trim() || null;
+const { data: job, error } = await supabaseClient.from('jobs').insert({ client_id: currentClient.id, customer_id: c.id, name: `${c.name} – ${fmtDate(date, { month: 'short', day: 'numeric', year: 'numeric' })}`.slice(0, 120),
+job_type: 'Visit', start_date: date, end_date: date, status: 'complete', quoted_amount: price, notes }).select('id').single();
+if (!error && (hours || miles)) {
+const half = Math.round((miles || 0) / 2 * 10) / 10;
+await supabaseClient.from('job_time').insert({ client_id: currentClient.id, job_id: job.id, work_date: date, worker: null, hours: hours || 0, miles_to: half, miles_back: Math.round(((miles || 0) - half) * 10) / 10, notes });
+}
+setBusy(btn, false, label);
+if (error) { setAlert('vf-msg', friendlyError(error), 'error'); return; }
+document.getElementById('visit-form').hidden = true;
+await loadLedgers();
+});
+
+function fillCustomerSelect() {
+const sel = document.getElementById('jf-cust-sel'); const cur = sel.value;
+sel.textContent = '';
+const o0 = el('option', null, 'One-time (type the name)'); o0.value = ''; sel.appendChild(o0);
+ledCustomers.filter(c => c.active || c.id === cur).forEach(c => { const o = el('option', null, c.name); o.value = c.id; sel.appendChild(o); });
+sel.value = cur && ledCustomers.some(c => c.id === cur) ? cur : '';
+document.getElementById('jf-customer-row').hidden = !!sel.value;
+}
+document.getElementById('jf-cust-sel').addEventListener('change', (e) => { document.getElementById('jf-customer-row').hidden = !!e.target.value; });
+
+function renderJobList() {
 const table = document.getElementById('job-table'), empty = document.getElementById('job-empty');
 table.textContent = '';
 const rolls = ledJobs.map(j => ({ j, r: jobRollup(j) }));
@@ -1644,10 +1943,10 @@ const h = el('thead'), hr = el('tr'); th(hr, [['Date'], ['Type'], ['Category'], 
 const tb = el('tbody');
 r.entries.forEach(x => {
 const tr = el('tr');
-tr.appendChild(el('td', null, ledDate(x.entry_date)));
-tr.appendChild(el('td', null, LED_KINDS[x.kind].title));
+tr.appendChild(el('td', null, ledDate(x.date)));
+tr.appendChild(el('td', null, x.label));
 tr.appendChild(el('td', null, x.category || '—'));
-tr.appendChild(el('td', 'r ' + (dirOf(x.kind) === 'out' ? 'neg' : 'pos'), (dirOf(x.kind) === 'out' ? '−' : '+') + money(x.amount, { cents: true })));
+tr.appendChild(el('td', 'r ' + (x.dir === 'out' ? 'neg' : 'pos'), (x.dir === 'out' ? '−' : '+') + money(x.amount, { cents: true })));
 const st = el('td'); st.appendChild(statusBadge(x.status)); tr.appendChild(st);
 tb.appendChild(tr);
 });
@@ -1660,7 +1959,9 @@ box.hidden = false;
 function openJobForm(job) {
 jobEditId = job ? job.id : null;
 document.getElementById('jf-name').value = job ? job.name : '';
-document.getElementById('jf-customer').value = job ? (job.customer || '') : '';
+document.getElementById('jf-customer').value = job && !job.customer_id ? (job.customer || '') : '';
+fillCustomerSelect(); document.getElementById('jf-cust-sel').value = job && job.customer_id ? job.customer_id : '';
+document.getElementById('jf-customer-row').hidden = !!(job && job.customer_id);
 document.getElementById('jf-type').value = job ? (job.job_type || '') : '';
 document.getElementById('jf-start').value = job ? job.start_date : todayISO();
 document.getElementById('jf-end').value = job ? (job.end_date || '') : '';
@@ -1672,7 +1973,7 @@ setAlert('jf-msg', '');
 document.getElementById('job-form').hidden = false;
 document.getElementById('jf-name').focus();
 }
-document.getElementById('job-new-btn').addEventListener('click', () => openJobForm(null));
+document.getElementById('job-new-btn').addEventListener('click', () => { jobsMode = 'jobs'; renderJobs(); openJobForm(null); });
 document.getElementById('jd-edit').addEventListener('click', () => { const j = ledJobs.find(x => x.id === openJobId); if (j) { openJobForm(j); document.getElementById('job-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });
 // Deleting a job removes it and its time & mileage log for good; money entries stay, untagged.
 document.getElementById('jd-delete').addEventListener('click', async (e) => {
@@ -1698,7 +1999,8 @@ if (!name) { setAlert('jf-msg', 'Give the job a name.', 'error'); return; }
 if (!start) { setAlert('jf-msg', 'Enter a start date.', 'error'); return; }
 if (qRaw && !(quote >= 0)) { setAlert('jf-msg', 'Quoted price must be a number.', 'error'); return; }
 const rec = {
-name, customer: document.getElementById('jf-customer').value.trim() || null,
+name, customer_id: document.getElementById('jf-cust-sel').value || null,
+customer: document.getElementById('jf-cust-sel').value ? null : (document.getElementById('jf-customer').value.trim() || null),
 job_type: document.getElementById('jf-type').value.trim() || null,
 start_date: start, end_date: document.getElementById('jf-end').value || null,
 quoted_amount: quote, status: document.getElementById('jf-status').value,
