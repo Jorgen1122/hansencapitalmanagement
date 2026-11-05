@@ -767,7 +767,7 @@ async function loadReports() {
 const box = document.getElementById('report-list');
 const { data, error } = await supabaseClient
 .from('documents').select('*')
-.eq('client_id', currentClient.id).eq('direction', 'firm_deliverable')
+.eq('client_id', currentClient.id).eq('direction', 'firm_deliverable').eq('visibility', 'client') // staff previewing see only what the client sees
 .order('uploaded_at', { ascending: false });
 box.textContent = '';
 if (error || !data || !data.length) { box.appendChild(el('p', 'empty-note panel-empty', 'No reports shared yet. Your monthly statements and analysis will appear here.')); return; }
@@ -958,7 +958,7 @@ const list = document.getElementById('q-list'), empty = document.getElementById(
 const [qRes, eRes] = await Promise.all([
 supabaseClient.from('review_items')
 .select('id, ref_no, category, item_date, amount, title, current_treatment, messages, status, resolution, resolved_at')
-.eq('client_id', currentClient.id).order('ref_no', { ascending: false }),
+.eq('client_id', currentClient.id).eq('visible_to_client', true).order('ref_no', { ascending: false }),
 supabaseClient.from('ledger_entries').select('*').eq('client_id', currentClient.id).eq('status', 'needs_info')
 .order('entry_date', { ascending: false }).limit(200),
 ]);
