@@ -977,7 +977,7 @@ list.textContent = '';
 empty.hidden = items.some(i => i.status !== 'resolved') || sentBack.length > 0;
 const ref = n => 'R-' + String(n).padStart(3, '0');
 const order = { open: 0, answered: 1, resolved: 2 };
-const groups = [['open', 'Waiting on your answer'], ['answered', 'Answered, with your accountant'], ['resolved', 'Resolved']];
+const groups = [['open', 'Waiting on your answer'], ['answered', 'Answered, with HCM'], ['resolved', 'Resolved']];
 for (const [st, label] of groups) {
   const rows = items.filter(i => i.status === st).sort((a, b) => order[a.status] - order[b.status] || b.ref_no - a.ref_no);
   if (!rows.length) continue;
@@ -1440,7 +1440,7 @@ sent++;
 }
 setBusy(btn, false, label);
 if (sent) { ['rc-date', 'rc-amount', 'rc-vendor', 'rc-note'].forEach(id => { document.getElementById(id).value = ''; }); pickReceipts([]); }
-setAlert('rc-msg', failed.length ? `${sent} sent. Couldn’t send: ${failed.join(', ')} (use a photo or PDF under 25 MB).` : `${sent === 1 ? 'Receipt' : sent + ' receipts'} sent to your accountant. Thank you!`, failed.length ? 'error' : 'success');
+setAlert('rc-msg', failed.length ? `${sent} sent. Couldn’t send: ${failed.join(', ')} (use a photo or PDF under 25 MB).` : `${sent === 1 ? 'Receipt' : sent + ' receipts'} sent to HCM. Thank you!`, failed.length ? 'error' : 'success');
 await loadReceipts();
 });
 
@@ -1649,7 +1649,7 @@ const up = await supabaseClient.storage.from(DOCS_BUCKET).upload(path, file);
 if (up.error) throw up.error;
 const { error } = await supabaseClient.from('documents').insert({ client_id: currentClient.id, payee_id: p.id, filename: file.name, storage_path: path, category, direction: 'client_upload', status: 'pending' });
 if (error) throw error; // an orphaned upload is removed by the daily cleanup
-setAlert('ppl-msg', `${category} for ${p.display_name} sent to your accountant.`, 'success');
+setAlert('ppl-msg', `${category} for ${p.display_name} sent to HCM.`, 'success');
 await loadPeople();
 } catch (err) {
 setAlert('ppl-msg', (err && err.message && !/^[A-Z_]+$/.test(err.message)) ? err.message : friendlyError(err), 'error');
