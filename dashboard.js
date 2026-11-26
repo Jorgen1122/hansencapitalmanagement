@@ -74,6 +74,7 @@ await loadExtras();
 await loadQuestions();
 await loadFlows();
 await loadLedgers();
+if (window.loadSales) await window.loadSales();
 await loadPeople();
 await loadOnboarding();
 if (STAFF_VIEW) document.querySelectorAll('.onb-step input, .onb-step select, .onb-step textarea').forEach((i) => { i.disabled = true; });
@@ -589,7 +590,7 @@ init().then(() => { if (currentClient && !STAFF_VIEW) { refreshMfa(); loadNotifP
 // Tabs: Overview / P&L / Cash / Reports / Billing / Documents / Security
 // Everything below renders with DOM methods and textContent only.
 // =====================================================================
-const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'receipts', 'people', 'reports', 'billing', 'documents', 'security'];
+const TABS = ['start', 'overview', 'questions', 'pnl', 'cash', 'ledgers', 'sales', 'receipts', 'people', 'reports', 'billing', 'documents', 'security'];
 function showTab(name) {
 if (name && !TABS.includes(name)) return; // e.g. the skip link
 if (STAFF_VIEW && name === 'security') name = 'overview'; // security settings belong to the client's own login

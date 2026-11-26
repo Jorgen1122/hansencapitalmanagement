@@ -34,6 +34,7 @@
   <a href="#pnl">P&amp;L</a>
   <a href="#cash">Cash</a>
   <a href="#ledgers">Ledgers</a>
+  <a href="#sales">Sales</a>
   <a href="#receipts">Receipts</a>
   <a href="#people">People</a>
   <a href="#reports">Reports</a>
@@ -445,6 +446,20 @@ Not enough history yet to chart a trend — this fills in as more months close.
 </section>
 </div>
 
+<!-- SALES (invoices, estimates, payments received, who owes you) -->
+<div class="tab-panel" data-tab="sales" hidden>
+<section class="panel" aria-labelledby="sl-title">
+<div class="panel-bar"><h2 class="panel-title" id="sl-title">Sales</h2>
+<div class="led-actions sl-new"><button class="btn btn-sm" id="sl-new-invoice" type="button">+ Invoice</button><button class="btn-plain btn-sm-plain" id="sl-new-payment" type="button">+ Payment</button><button class="btn-plain btn-sm-plain" id="sl-new-estimate" type="button">+ Estimate</button><button class="btn-plain btn-sm-plain" id="sl-new-recurring" type="button">+ Recurring</button></div></div>
+<div class="kpi-grid sl-kpis" id="sl-stats"></div>
+<div class="sl-tabs"><div class="seg seg-sm" role="group" aria-label="Sales view">
+<button type="button" class="led-tab active" data-sales="invoices">Invoices</button><button type="button" class="led-tab" data-sales="estimates">Estimates</button><button type="button" class="led-tab" data-sales="payments">Payments</button><button type="button" class="led-tab" data-sales="owed">Who owes you</button><button type="button" class="led-tab" data-sales="recurring">Recurring</button><button type="button" class="led-tab" data-sales="items">Products &amp; services</button><button type="button" class="led-tab" data-sales="settings">Settings</button>
+</div></div>
+<div id="sl-msg" class="form-alert sl-msg" role="status" aria-live="polite"></div>
+<div id="sl-body"><p class="empty-note panel-empty">Loading…</p></div>
+</section>
+</div>
+
 <!-- RECEIPTS (for any purchase that isn't a cash or check entry) -->
 <div class="tab-panel" data-tab="receipts" hidden>
 <section class="panel" aria-labelledby="rc-title">
@@ -642,5 +657,6 @@ Not enough history yet to chart a trend — this fills in as more months close.
 <script src="supabase-config.js"></script>
 <script src="portal-auth.js"></script>
 <script src="dashboard.js"></script>
+<script src="sales.js"></script>
 </body>
 </html>
