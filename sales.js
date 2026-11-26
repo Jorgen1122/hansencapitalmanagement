@@ -66,7 +66,7 @@ async function load() {
   const c = currentClient.id;
   const settings = must(await supabaseClient.rpc('sales_settings_get', { p_client: c }));
   const [cu, it, dc, pm, rc, tl, jb] = await Promise.all([
-    supabaseClient.from('client_customers').select('id, name, company, email, phone, address, terms, active').eq('client_id', c).order('name'),
+    supabaseClient.from('client_customers').select('id, name, company, email, cc_emails, phone, address, terms, active').eq('client_id', c).order('name'),
     supabaseClient.from('sales_items').select('*').eq('client_id', c).order('name'),
     supabaseClient.from('sales_docs').select('*').eq('client_id', c).order('issue_date', { ascending: false }).order('number', { ascending: false }).limit(2000),
     supabaseClient.from('sales_payments').select('*, sales_payment_apps(doc_id, amount)').eq('client_id', c).order('payment_date', { ascending: false }).limit(2000),
@@ -245,6 +245,12 @@ function docView(d) {
     if (!inv && ['draft', 'sent', 'accepted', 'expired'].includes(d.status)) acts.appendChild(btn('Turn into invoice', 'btn btn-sm', () => run(async () => { S.open = must(await supabaseClient.rpc('sales_estimate_to_invoice', { p_doc: d.id })); S.view = 'invoices'; }, 'Draft invoice created from the estimate.')));
     if (!['void', 'converted', 'paid'].includes(d.status)) acts.appendChild(btn('Edit', 'led-btn', async () => { const ls = lines || await loadLines(d.id); S.form = docDraft(d.kind, d, ls); S.open = null; render(); }));
   }
+  if (!STAFF_VIEW && !['void', 'converted'].includes(d.status)) {
+    acts.appendChild(btn(d.status === 'draft' ? 'Finalize & email' : d.sent_at ? 'Email again' : 'Email to customer', 'btn btn-sm', () => {
+      if (panel.querySelector('.sl-mail')) return;
+      panel.insertBefore(mailForm(d), panel.children[1]);
+    }));
+  }
   acts.appendChild(btn('Print / PDF', 'led-btn', () => { if (lines) printDoc(d, lines); }));
   if (!STAFF_VIEW && !['draft', 'void'].includes(d.status)) {
     acts.appendChild(btn('Copy customer link', 'led-btn', async () => {
@@ -289,6 +295,31 @@ function docView(d) {
     if (z.childNodes.length) panel.appendChild(z);
   }
   return panel;
+}
+function mailForm(d) {
+  const c = S.data.customers.find((x) => x.id === d.customer_id) || {};
+  const f = el('form', 'led-form sl-mail'); f.noValidate = true;
+  const g = el('div', 'led-grid');
+  const to = input('email', c.email || '', { maxLength: 254 }); const cc = input('text', c.cc_emails || '', { maxLength: 600, placeholder: 'Optional, comma separated' });
+  g.append(field('Send to', to, 'span-2'), field('CC', cc, 'span-2'));
+  const note = el('p', 'led-sub', `It comes from HCM’s mailbox as “${currentClient.business_name} via HCM”, and replies go to ${S.data.settings.reply_email || 'your email'} (Sales → Settings).${d.status === 'draft' ? ' The draft is finalized and added to your books first.' : ''} Each email has a fresh link; older links stop working.`);
+  const err = el('div', 'form-alert'); const a = el('div', 'led-actions');
+  const send = el('button', 'btn btn-sm', 'Send email'); send.type = 'submit';
+  a.append(send, btn('Cancel', 'btn-plain btn-sm-plain', () => f.remove()));
+  f.append(g, note, a, err);
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault(); err.textContent = ''; err.className = 'form-alert';
+    if (!to.value.trim()) { err.textContent = 'Enter your customer’s email address.'; err.className = 'form-alert error'; return; }
+    send.disabled = true; send.textContent = 'Sending…';
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('sales-send', { body: { action: 'send', doc_id: d.id, to: to.value.trim(), cc: cc.value.trim() || null } });
+      if (error) { let m = error.message; try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (x) { /* keep */ } throw new Error(m); }
+      if (data && data.error) throw new Error(data.error);
+      await run(async () => undefined, `Emailed ${data.number} to ${data.to}.`);
+    } catch (x) { err.textContent = errText(x); err.className = 'form-alert error'; send.disabled = false; send.textContent = 'Send email'; }
+  });
+  setTimeout(() => to.focus(), 0);
+  return f;
 }
 async function loadLines(id) { return must(await supabaseClient.from('sales_doc_lines').select('*').eq('doc_id', id).order('line_no')) || []; }
 
@@ -350,7 +381,7 @@ function customerQuick(onAdded) {
   const err = el('div', 'form-alert');
   const save = btn('Add customer', 'btn btn-sm', async () => {
     if (!n.value.trim()) { err.textContent = 'Enter the customer’s name.'; err.className = 'form-alert error'; return; }
-    const { data, error } = await supabaseClient.from('client_customers').insert({ client_id: currentClient.id, name: n.value.trim(), email: em.value.trim() || null, company: co.value.trim() || null, address: ad.value.trim() || null, terms: tm.value || null, frequency: 'as_needed' }).select('id, name, company, email, phone, address, terms, active').single();
+    const { data, error } = await supabaseClient.from('client_customers').insert({ client_id: currentClient.id, name: n.value.trim(), email: em.value.trim() || null, company: co.value.trim() || null, address: ad.value.trim() || null, terms: tm.value || null, frequency: 'as_needed' }).select('id, name, company, email, cc_emails, phone, address, terms, active').single();
     if (error) { err.textContent = /duplicate|unique/i.test(error.message) ? 'You already have a customer with that name.' : errText(error); err.className = 'form-alert error'; return; }
     S.data.customers.push(data); S.data.customers.sort((a, b) => a.name.localeCompare(b.name)); onAdded(data);
   });
