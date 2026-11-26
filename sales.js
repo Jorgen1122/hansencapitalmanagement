@@ -221,13 +221,47 @@ function settingsView() {
   g.append(field('Reply-to email on invoices', reply), field('Default terms', terms),
     field('Message on every invoice', msgIn, 'span-2'), field('Footer (address, license #, how to pay by check)', foot, 'span-2'));
   f.appendChild(g);
-  const p = el('p', 'led-sub', `Invoices are numbered ${s.invoice_prefix}${s.next_invoice_no} next. Online payment: ${s.stripe_status === 'enabled' ? 'connected' : 'coming soon. You’ll connect your own Stripe account here so customers can pay by card or bank.'}`);
-  f.appendChild(p);
+  f.appendChild(el('p', 'led-sub', `Invoices are numbered ${s.invoice_prefix}${s.next_invoice_no} next.`));
   if (!STAFF_VIEW) {
     const a = el('div', 'led-actions'); const save = el('button', 'btn btn-sm', 'Save settings'); save.type = 'submit'; a.appendChild(save); f.appendChild(a);
     f.addEventListener('submit', (e) => { e.preventDefault(); run(async () => must(await supabaseClient.rpc('sales_settings_save', { p_client: currentClient.id, p: { reply_email: reply.value, default_terms: terms.value, invoice_message: msgIn.value, footer: foot.value } })), 'Settings saved.'); });
   } else f.querySelectorAll('input, select, textarea').forEach((x) => { x.disabled = true; });
-  box.appendChild(f); return box;
+  box.append(onlinePayBox(), f); return box;
+}
+
+// ---------- online payments (the business's own Stripe account) ----------
+async function callFn(name, body) {
+  const { data, error } = await supabaseClient.functions.invoke(name, { body });
+  if (error) { let m = error.message; try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (x) { /* keep */ } throw new Error(m); }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+async function startOnboarding(b) {
+  if (b) { b.disabled = true; b.textContent = 'Opening Stripe…'; }
+  try { const r = await callFn('stripe-connect', { action: 'onboard', client_id: currentClient.id }); location.href = r.url; }
+  catch (e) { msg(errText(e)); if (b) { b.disabled = false; b.textContent = 'Try again'; } }
+}
+function onlinePayBox() {
+  const s = S.data.settings; const box = el('div', 'sl-pay');
+  const st = s.stripe_status || 'none';
+  box.appendChild(el('h3', 'sl-form-title', 'Online payments'));
+  const lines = {
+    none: 'Let customers pay your invoices by card or bank (ACH) from the invoice link or email. Money goes straight to your own Stripe account and then to your bank; HCM never holds it. Stripe charges its standard processing fees to your account.',
+    onboarding: 'You started setting up Stripe. Finish it so customers can pay online.',
+    restricted: 'Stripe needs a bit more information before customers can pay you online.',
+    enabled: 'Connected. Customers see a “Pay online” button on your invoices (card or bank). Payments post to your books automatically. Refunds, disputes and payouts are managed in your Stripe dashboard.',
+  };
+  box.appendChild(el('p', 'led-sub', lines[st] || lines.none));
+  if (st !== 'none' && st !== 'enabled' && Array.isArray(s.stripe_due) && s.stripe_due.length) box.appendChild(el('p', 'led-sub', `Stripe is waiting on ${s.stripe_due.length} item${s.stripe_due.length === 1 ? '' : 's'}.`));
+  if (STAFF_VIEW) return box;
+  const a = el('div', 'led-actions');
+  if (st === 'enabled') {
+    const dash = el('a', 'btn-plain btn-sm-plain', 'Open your Stripe dashboard'); dash.href = 'https://dashboard.stripe.com/'; dash.target = '_blank'; dash.rel = 'noopener'; a.appendChild(dash);
+  } else {
+    const go = btn(st === 'none' ? 'Set up online payments' : 'Finish Stripe setup', 'btn btn-sm', () => startOnboarding(go)); a.appendChild(go);
+  }
+  if (st !== 'none') a.appendChild(btn('Check status', 'btn-plain btn-sm-plain', () => run(async () => { await callFn('stripe-connect', { action: 'status', client_id: currentClient.id }); }, 'Status updated from Stripe.')));
+  box.appendChild(a); return box;
 }
 
 // ---------- one invoice / estimate ----------
@@ -606,5 +640,15 @@ $('sl-new-invoice').addEventListener('click', () => newDoc('invoice'));
 $('sl-new-estimate').addEventListener('click', () => newDoc('estimate'));
 $('sl-new-payment').addEventListener('click', () => { S.form = paymentDraft(); S.open = null; msg(''); render(); });
 $('sl-new-recurring').addEventListener('click', () => { S.form = recurringDraft(); S.open = null; msg(''); render(); });
-window.loadSales = () => load().catch((e) => { const b = $('sl-body'); b.textContent = ''; b.appendChild(empty('Sales couldn’t load: ' + errText(e))); });
+const stripeBack = new URLSearchParams(location.search).get('stripe');
+async function afterStripe() {
+  if (!stripeBack || STAFF_VIEW) return;
+  try { history.replaceState(null, '', location.pathname + '#sales'); } catch (e) { /* fine */ }
+  S.view = 'settings';
+  if (stripeBack === 'refresh') { await startOnboarding(null); return; }
+  try { const r = await callFn('stripe-connect', { action: 'status', client_id: currentClient.id }); await load();
+    msg(r.status === 'enabled' ? 'Stripe is connected. Your customers can now pay invoices online.' : 'Thanks. Stripe is reviewing your details, or still needs a few items. Check back here shortly.', r.status === 'enabled'); }
+  catch (e) { msg(errText(e)); }
+}
+window.loadSales = () => load().then(afterStripe).catch((e) => { const b = $('sl-body'); b.textContent = ''; b.appendChild(empty('Sales couldn’t load: ' + errText(e))); });
 })();

@@ -37,7 +37,7 @@ function render(d) {
     const l = el('div'); l.append(el('div', 'label', paid ? 'Paid in full' : 'Amount due'), el('div', 'amt', usd(paid ? d.total : d.balance)));
     if (!paid && d.due_date) l.appendChild(el('p', 'note', 'Due ' + day(d.due_date)));
     const actions = el('div', 'actions no-print');
-    if (!paid) {
+    if (!paid && !(Number(d.pending) > 0)) {
       const pay = el('button', 'btn primary', 'Pay online'); pay.type = 'button';
       if (d.can_pay) { pay.addEventListener('click', () => { pay.disabled = true; pay.textContent = 'Opening secure payment…'; startPay(pay); }); }
       else { pay.disabled = true; pay.title = 'Online payment isn’t set up for this business yet.'; }
@@ -46,7 +46,11 @@ function render(d) {
     const pr = el('button', 'btn', 'Print or save PDF'); pr.type = 'button'; pr.addEventListener('click', () => window.print());
     actions.appendChild(pr);
     box.append(l, actions); sheet.appendChild(box);
-    if (!paid && !d.can_pay) sheet.appendChild(el('p', 'note no-print', 'To pay, use the payment details below or contact the business.'));
+    const justPaid = new URLSearchParams(location.search).get('paid') === '1';
+    if (justPaid && !paid) sheet.appendChild(el('p', 'thanks no-print', Number(d.pending) > 0 ? 'Thank you! Your bank payment is processing. It usually takes about 4 business days to clear; this page will show it as paid then.' : 'Thank you! Your payment is being confirmed. Refresh in a moment to see it marked paid.'));
+    else if (justPaid && paid) sheet.appendChild(el('p', 'thanks no-print', 'Thank you! Your payment was received.'));
+    else if (!paid && Number(d.pending) > 0) sheet.appendChild(el('p', 'note no-print', 'A bank payment for this invoice is processing.'));
+    else if (!paid && !d.can_pay) sheet.appendChild(el('p', 'note no-print', 'To pay, use the payment details below or contact the business.'));
   } else {
     const actions = el('div', 'actions no-print'); actions.style.margin = '20px 0';
     const pr = el('button', 'btn', 'Print or save PDF'); pr.type = 'button'; pr.addEventListener('click', () => window.print());
@@ -77,6 +81,19 @@ function render(d) {
   sheet.appendChild(el('div', 'foot', (d.footer ? d.footer + '\n' : '') + 'Thank you for your business.'));
 }
 
-// Online payment (Stripe Checkout on the business's own Stripe account) is switched on in a later step.
-function startPay(btnEl) { btnEl.textContent = 'Online payment is coming soon'; }
+// Online payment: Stripe Checkout on the business's own Stripe account (sales-pay edge function).
+function startPay(btnEl) {
+  client.functions.invoke('sales-pay', { body: { token } }).then(async ({ data, error }) => {
+    let m = '';
+    if (error) { m = 'Online payment couldn’t start. Please try again.'; try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) { /* keep */ } }
+    else if (!data || !data.url) m = (data && data.error) || 'Online payment couldn’t start. Please try again.';
+    if (m) { btnEl.disabled = false; btnEl.textContent = 'Pay online'; showNote(m); return; }
+    location.href = data.url;
+  }).catch(() => { btnEl.disabled = false; btnEl.textContent = 'Pay online'; showNote('Online payment couldn’t start. Check your connection and try again.'); });
+}
+function showNote(text) {
+  let n = document.getElementById('pay-note');
+  if (!n) { n = el('p', 'note no-print'); n.id = 'pay-note'; const box = sheet.querySelector('.due-box'); if (box) box.after(n); else sheet.appendChild(n); }
+  n.textContent = text;
+}
 })();

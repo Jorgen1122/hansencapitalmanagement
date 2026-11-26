@@ -1024,3 +1024,5 @@ body.staff-view .sl-new, body.staff-view .sl-danger { display: none !important; 
 .led-grid .span-all { grid-column: 1 / -1; }
 .sl-form .led-grid > label.span-2:has(textarea) { grid-column: span 4; }
 @media (max-width: 760px) { .led-grid .span-all { grid-column: 1 / -1; } }
+.sl-pay { margin: 16px 20px 0; padding: 16px 18px; border: 1px solid var(--line-2); border-radius: 12px; background: #0A1626; }
+.sl-pay .led-sub { margin: 0 0 8px; }
