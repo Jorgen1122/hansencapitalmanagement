@@ -1026,3 +1026,7 @@ body.staff-view .sl-new, body.staff-view .sl-danger { display: none !important; 
 @media (max-width: 760px) { .led-grid .span-all { grid-column: 1 / -1; } }
 .sl-pay { margin: 16px 20px 0; padding: 16px 18px; border: 1px solid var(--line-2); border-radius: 12px; background: #0A1626; }
 .sl-pay .led-sub { margin: 0 0 8px; }
+
+/* refunds listed under their payment */
+.sl-section tr.sub-row td { color: var(--dim); font-size: 0.88rem; border-top: 0; padding-top: 2px; }
+.sl-section td .sub { color: var(--dim); font-size: 0.82rem; }

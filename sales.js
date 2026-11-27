@@ -38,6 +38,8 @@ const pctTxt2 = (r) => (r * 100).toFixed(3).replace(/0+$/, '').replace(/\.$/, ''
 
 function badge(d) {
   if (overdue(d)) return el('span', 'badge overdue', 'Overdue');
+  const r = Number(d.amount_refunded || 0);
+  if (r > 0 && ['paid', 'partial'].includes(d.status)) return el('span', 'badge ' + (r >= Number(d.amount_paid) ? 'muted' : 'open'), r >= Number(d.amount_paid) ? 'Refunded' : 'Partly refunded');
   const [tone, label] = STATUS[d.status] || ['muted', d.status];
   return el('span', 'badge ' + tone, label);
 }
@@ -69,7 +71,7 @@ async function load() {
     supabaseClient.from('client_customers').select('id, name, company, email, cc_emails, phone, address, terms, active').eq('client_id', c).order('name'),
     supabaseClient.from('sales_items').select('*').eq('client_id', c).order('name'),
     supabaseClient.from('sales_docs').select('*').eq('client_id', c).order('issue_date', { ascending: false }).order('number', { ascending: false }).limit(2000),
-    supabaseClient.from('sales_payments').select('*, sales_payment_apps(doc_id, amount)').eq('client_id', c).order('payment_date', { ascending: false }).limit(2000),
+    supabaseClient.from('sales_payments').select('*, sales_payment_apps(doc_id, amount), sales_refunds(id, amount, refund_date, method, memo, stripe_ref)').eq('client_id', c).order('payment_date', { ascending: false }).limit(2000),
     supabaseClient.from('sales_recurring').select('*').eq('client_id', c).order('next_date'),
     supabaseClient.from('sales_tax_locations').select('id, name, rate').eq('client_id', c).order('name'),
     supabaseClient.from('jobs').select('id, name, customer_id, start_date').eq('client_id', c).order('start_date', { ascending: false }).limit(300),
@@ -143,18 +145,58 @@ function paymentList() {
   const box = el('div', 'sl-section');
   if (!S.data.payments.length) { box.appendChild(empty('No payments recorded yet. Use “+ Payment” when a customer pays by check, cash, Zelle or Venmo.')); return box; }
   const num2 = (id) => (S.data.docs.find((d) => d.id === id) || {}).number || '—';
-  box.appendChild(table(['Date', 'Customer', 'Method', 'Invoices', 'Amount', ''], S.data.payments.map((p) => {
-    const tr = el('tr', ['failed', 'refunded'].includes(p.status) ? 'row-dim' : '');
+  const rows = [];
+  S.data.payments.forEach((p) => {
+    const refunded = Number(p.amount_refunded || 0); const left = r2(Number(p.amount) - refunded);
+    const tr = el('tr', p.status === 'failed' || left <= 0 ? 'row-dim' : '');
     const inv = el('td', '', (p.sales_payment_apps || []).map((a) => num2(a.doc_id)).join(', '));
+    const amt = td(usd(p.amount), 'r');
+    if (refunded > 0) amt.appendChild(el('div', 'sub', left <= 0 ? 'refunded' : usd(refunded) + ' refunded'));
     const act = el('td', 'r');
     if (!STAFF_VIEW && p.method !== 'stripe') {
+      if (left > 0) act.appendChild(btn('Refund', 'led-btn', () => { const open = box.querySelector(`[data-rf="${p.id}"]`); if (open) open.remove(); else tr.after(refundRow(p, left)); }));
       const b = btn('Delete', 'led-btn danger', () => twice(b, 'Click again', () => run(async () => must(await supabaseClient.rpc('sales_payment_delete', { p_payment: p.id })), 'Payment deleted. The invoice is open again.')));
       act.appendChild(b);
     }
-    tr.append(td(day(p.payment_date)), td(custName(p.customer_id)), td(`${METHOD_LABEL[p.method] || p.method}${p.reference ? ' ' + p.reference : ''}${p.status === 'pending' ? ' · pending' : ''}`), inv, td(usd(p.amount), 'r'), act);
-    return tr;
-  })));
+    tr.append(td(day(p.payment_date)), td(custName(p.customer_id)), td(`${METHOD_LABEL[p.method] || p.method}${p.reference ? ' ' + p.reference : ''}${p.status === 'pending' ? ' · pending' : ''}`), inv, amt, act);
+    rows.push(tr);
+    (p.sales_refunds || []).forEach((r) => {
+      const rr = el('tr', 'sub-row');
+      const ra = el('td', 'r');
+      if (!STAFF_VIEW && !r.stripe_ref) { const b = btn('Delete', 'led-btn danger', () => twice(b, 'Click again', () => run(async () => must(await supabaseClient.rpc('sales_refund_delete', { p_refund: r.id })), 'Refund deleted.'))); ra.appendChild(b); }
+      const what = td(`Refund${r.stripe_ref ? ' in Stripe' : ' · ' + (METHOD_LABEL[r.method] || r.method)}${r.memo && !r.stripe_ref ? ' · ' + r.memo : ''}`); what.colSpan = 3;
+      rr.append(td(day(r.refund_date)), what, td('(' + usd(r.amount) + ')', 'r'), ra);
+      rows.push(rr);
+    });
+  });
+  box.appendChild(table(['Date', 'Customer', 'Method', 'Invoices', 'Amount', ''], rows));
+  box.appendChild(el('p', 'panel-note', 'Card and bank payments taken online are refunded in your Stripe dashboard; the refund shows here on its own.'));
   return box;
+}
+
+// Money given back on a check/cash/Zelle payment. The books reverse the sale (and its sales tax) in proportion.
+function refundRow(p, left) {
+  const tr = el('tr'); tr.dataset.rf = p.id; const cell = el('td'); cell.colSpan = 6; tr.appendChild(cell);
+  const f = el('form', 'led-form sl-mail'); f.noValidate = true;
+  const g = el('div', 'led-grid');
+  const amt = input('text', left.toFixed(2), { inputMode: 'decimal' });
+  const date = input('date', new Date().toISOString().slice(0, 10));
+  const how = select(METHODS.filter(([v]) => v !== 'stripe'), p.method === 'cash' ? 'cash' : 'check');
+  const from = select([['bank', 'Our bank account'], ['', 'The payment was never deposited']], p.method === 'cash' ? '' : 'bank');
+  const memo = input('text', '', { maxLength: 500, placeholder: 'e.g. check #1042' });
+  g.append(field('Amount refunded', amt), field('Date', date), field('How', how), field('Paid from', from), field('Memo', memo, 'span-all'));
+  const err = el('div', 'form-alert'); const a = el('div', 'led-actions');
+  const save = el('button', 'btn btn-sm', 'Record refund'); save.type = 'submit';
+  a.append(save, btn('Cancel', 'btn-plain btn-sm-plain', () => tr.remove()));
+  f.append(g, a, err);
+  f.addEventListener('submit', (e) => {
+    e.preventDefault(); err.textContent = ''; err.className = 'form-alert';
+    const n = Number(String(amt.value).replace(/[$,\s]/g, ''));
+    const bad = !(n > 0) ? 'Enter the amount refunded.' : n > left ? `At most ${usd(left)} is left to refund on this payment.` : '';
+    if (bad) { err.textContent = bad; err.className = 'form-alert error'; return; }
+    run(async () => must(await supabaseClient.rpc('sales_refund_record', { p: { payment_id: p.id, amount: n, refund_date: date.value, method: how.value, memo: memo.value, from: from.value || null } })), 'Refund recorded. Your books are updated.');
+  });
+  cell.appendChild(f); return tr;
 }
 
 function agingView() {
@@ -311,6 +353,7 @@ function docView(d) {
     if (Number(d.tax_total)) rows.push(tot(`Sales tax ${pctTxt2(Number(d.tax_rate))}`, usd(d.tax_total)));
     rows.push(tot('Total', usd(d.total), true));
     if (inv && Number(d.amount_paid)) rows.push(tot('Paid', '(' + usd(d.amount_paid) + ')'));
+    if (inv && Number(d.amount_refunded)) rows.push(tot('Refunded to customer', usd(d.amount_refunded)));
     if (inv && !['draft', 'void'].includes(d.status)) rows.push(tot('Balance due', usd(bal(d)), true));
     linesBox.appendChild(table(['Description', 'Qty', 'Rate', 'Amount'], rows));
     if (d.message) linesBox.appendChild(el('p', 'panel-note', 'Message: ' + d.message));

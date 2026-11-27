@@ -34,7 +34,8 @@ function render(d) {
   if (inv) {
     const paid = Number(d.balance) <= 0;
     const box = el('div', 'due-box' + (paid ? ' paid' : ''));
-    const l = el('div'); l.append(el('div', 'label', paid ? 'Paid in full' : 'Amount due'), el('div', 'amt', usd(paid ? d.total : d.balance)));
+    const refunded = Number(d.refunded || 0);
+    const l = el('div'); l.append(el('div', 'label', paid ? (refunded >= Number(d.amount_paid) && refunded > 0 ? 'Paid, then refunded' : 'Paid in full') : 'Amount due'), el('div', 'amt', usd(paid ? d.total : d.balance)));
     if (!paid && d.due_date) l.appendChild(el('p', 'note', 'Due ' + day(d.due_date)));
     const actions = el('div', 'actions no-print');
     if (!paid && !(Number(d.pending) > 0)) {
@@ -75,6 +76,7 @@ function render(d) {
   row('Total', usd(d.total), !inv);
   if (inv && Number(d.amount_paid)) row('Paid', '(' + usd(d.amount_paid) + ')');
   if (inv) row('Balance due', usd(d.balance), true);
+  if (inv && Number(d.refunded)) row('Refunded to you', usd(d.refunded));
   tot.appendChild(tbody); sheet.appendChild(tot);
   if (inv && d.status === 'paid') { const s = el('p'); s.appendChild(el('span', 'stamp', 'Paid')); sheet.appendChild(s); }
   if (d.message) sheet.appendChild(el('div', 'msg', d.message));
